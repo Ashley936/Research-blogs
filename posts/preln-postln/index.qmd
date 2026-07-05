@@ -1,0 +1,62 @@
+---
+title: "Pre-LN vs Post-LN and how warmup helps"
+subtitle: "The maths, the intuition, and the experiments."
+date: "2026-07-02"
+categories: [transformers, pytorch, deep-learning, experiment]
+draft: true
+---
+
+## How gradients travel in the Residual stack?
+
+**Post-LN** (`x_{l+1} = LN(x_l + Sub(x_l))`): every backward gradient must pass through **every LayerNorm Jacobian** in the stack, in sequence. That Jacobian zeroes the gradient's component along the mean direction, zeroes the component along the `(x-μ)/σ` direction (scale invariance), and shrinks whatever's left by `≤ 1/σ`. Multiply `N` of these together and you get exponential gradient shrinkage with depth — subspaces that survive one layer's projection can get killed by the next.
+
+```
+Loss → [J_LN] → [J_LN] → [J_LN] → ... → [J_LN] → Early layer weights
+        Layer N   Layer N-1                 Layer 1
+        (shrinks) (shrinks again)          (barely anything left)
+```
+
+**Pre-LN** (`x_{l+1} = x_l + Sub(LN(x_l))`): the residual `x_l` is added *outside* the LN, so
+
+$$\frac{\partial L}{\partial x_l} = \frac{\partial L}{\partial x_{l+1}} \cdot \left(I + J_{\text{Sub}} \cdot J_{\text{LN}}\right)$$
+
+The identity term `I` is a direct gradient highway: a copy of the output gradient reaches every layer untouched, no matter what the sublayer Jacobian does to the other term.
+
+```
+Loss
+ │
+ ├─────────────────────── Identity highway ──────────────────────────┐
+ │                                                                    │
+[Sub·LN Jacobian] → [Sub·LN Jacobian] → ... → [Sub·LN Jacobian]      │
+                                                                      │
+                                                        Early weights ←┘
+```
+
+### Why this makes Post-LN learning-rate-sensitive
+
+Because Post-LN gradients shrink with depth, different layers have wildly different gradient magnitudes at any given step — a single global LR has to serve all of them at once:
+
+| Learning rate | Late layers | Early layers |
+|---|---|---|
+| Too high | Explode → divergence | Still okay |
+| Too low | Learn slowly | Learn essentially nothing |
+| Just right | Marginal stability | Still barely learning |
+
+There is no single LR that keeps late layers stable *and* gives early layers a usable signal — this is precisely why the original paper needs a warmup schedule as a bandage (more on that in §11). Pre-LN's identity highway keeps gradient magnitude roughly uniform across depth, so one LR works comfortably almost everywhere, and higher LRs become tolerable.
+
+The trade-off: Pre-LN's residual stream **grows unboundedly** in the forward pass (nothing renormalizes it layer to layer), which is exactly why `Encoder` and `Decoder` each end with one more `LayerNormalisation()` after the last block — a final cleanup norm that Post-LN doesn't strictly need, since Post-LN already renormalizes at every layer.
+
+```python
+class Encoder(nn.Module):
+    def __init__(self, layers: nn.ModuleList):
+        super().__init__()
+        self.layers=layers
+        self.norm=LayerNormalisation()   # <- the Pre-LN "final cleanup" norm
+    
+    def forward(self, x: Tensor, mask: Tensor=None):
+        for layer in self.layers:
+            x = layer(x, mask)
+        return self.norm(x)
+```
+
+That final `self.norm(x)` isn't decorative — it's the tell that confirms this implementation committed to Pre-LN, and it's required for Pre-LN to work correctly.

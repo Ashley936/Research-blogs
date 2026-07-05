@@ -1,0 +1,253 @@
+---
+title: "Building the Transformer From Scratch: An Implementation Log [Part-2]"
+subtitle: "Continuing where we left off in Part-1, with a focus on residual connections, layer normalization, and the training loop."
+date: 2026-07-02
+categories: [transformers, pytorch, deep-learning, from-scratch, nlp]
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-tools: true
+    number-sections: false
+draft: false  
+---
+I still have so much to share. So here we go.....
+
+## 6. Residual Connections: The Real Story is in the Backward Pass
+
+```python
+class ResidualConnection(nn.Module):
+    '''Solves the vanishing gradient problem'''
+    def __init__(self, dropout: float):
+        super().__init__()
+        self.dropout=nn.Dropout(dropout)
+        self.norm=LayerNormalisation()
+    
+    def forward(self, x, sublayer):
+        return x+self.dropout(sublayer(self.norm(x)))
+```
+
+### A Major change in modern approach from the 2017 paper:  
+::: {.callout-note title="Pre-LN vs Post-LN"}
+`self.norm(x)` happens **before** `sublayer(...)`, and the result is added to the untouched `x`. That's:
+
+$$x_{l+1} = x_l + \text{Dropout}(\text{Sub}(\text{LN}(x_l)))$$
+
+This is **Pre-LN**, not the **Post-LN** of the original 2017 paper (`LN(x + Sub(x))`). 
+Why did we do this? What is warm-up? How does it helps? Mathematical explanation and my experiment to prove it in the linked blog: [link].
+:::
+
+
+## 7. Assembling the Blocks: Why Dependency Injection?
+
+```python
+class EncoderBlock(nn.Module):
+    def __init__(self, self_attention_block: MultiHeadAttention, ff_block: FeedForwardBlock, dropout: float):
+        super().__init__()
+        self.self_attention_block = self_attention_block
+        self.ff_block = ff_block
+        self.residual_connections = nn.ModuleList([ResidualConnection(dropout) for _ in range(2)])
+
+    def forward(self, x: Tensor, src_mask: Tensor = None):
+        x = self.residual_connections[0](x, lambda x: self.self_attention_block(x, x, x, src_mask))
+        x = self.residual_connections[1](x, self.ff_block)
+        return x
+```
+
+Here we make the design choice of **constructor injection** for *Flexibility* (a custom attention variant can be swapped in) instead of the internal-init alternative which leads to tight coupling.
+
+::: {.callout-note title="Knowledge point :- choosing batch size"}
+Increasing `batch_size` -> the model updates after seeing more data per step -> less noisy gradient estimates but more compute and memory per step (with diminishing returns past a point).  
+Smaller `batch_size` -> more noise to the gradient -> makes training less stable.
+:::
+
+## 8. Two Kinds of Masks
+
+Inside the encoder and decoder layer, we use masking to compute attention of only the tokens that is needed  
+The encoder uses a padding mask, the decoder block uses two structurally different masks:
+
+| | Causal / look-ahead mask | Padding mask |
+|---|---|---|
+| Applied in | Self-attention (`Q=K=V=x`) | Cross-attention (`Q=decoder`, `K=V=enc_out`) |
+| Masks | Future target tokens | Padding tokens in the source |
+| Shape | Triangular, `(seq_len, seq_len)` | Flat, `(1, src_len)` |
+| Purpose | Force autoregressive behavior -> no cheating by looking ahead | Ignore meaningless padding positions |
+| Changes per batch? | No -> same triangle every time | Yes -> depends on each sentence's real length |
+
+## 9. Wiring It All Together
+
+```python
+def build_transformer(src_vocab_size, tgt_vocab_size, src_seq_len, tgt_seq_len,
+                       d_model=512, N=6, h=8, d_ff=2048, dropout=0.1):
+    ...
+    for w in transformer.parameters():
+        if w.dim() > 1:
+            nn.init.xavier_uniform_(w)
+    return transformer
+```
+
+Every multi-dimensional parameter (weight matrices, not biases :- `w.dim() > 1` filters those out) gets **Xavier-uniform** init, which scales initial weights based on fan-in/fan-out to keep activation variance roughly stable across layers at the start of training.
+
+::: {.callout-note title="Knowledge point :- Xavier initialization"}
+To calculate the ideal starting weights, Xavier initialization relies on two structural properties of the layer:
+
+* **`fan_in`**: The number of input connections (neurons) entering the layer.
+* **`fan_out`**: The number of output connections leaving the layer.
+
+Depending on the distribution you choose, the weights are drawn as follows:
+
+**1. Xavier Normal Initialization**
+Weights are drawn from a Normal (Gaussian) distribution with a mean of 0 and a standard deviation ($\sigma$) of:
+
+
+$$\sigma = \sqrt{\frac{2}{\text{fan\_in} + \text{fan\_out}}}$$
+
+**2. Xavier Uniform Initialization**
+Weights are drawn from a Uniform distribution bounded between $[-x, x]$, where $x$ is:
+
+
+$$x = \sqrt{\frac{6}{\text{fan\_in} + \text{fan\_out}}}$$
+
+*(Note: This is commonly applied exclusively to multi-dimensional weight matrices; 1-dimensional biases are typically initialized to zero).*  
+**The Exception:** It does *not* work well with **ReLU** or its variants (Leaky ReLU, GELU), because ReLU zeros out half of the distribution, cutting the variance in half. **He Initialization** (Kaiming initialization) works with ReLU-based networks as it adjusts the numerator to account for the dead neurons.
+:::
+
+## 10. Training Loop: Loss function, Label Smoothing, and Checkpointing
+
+```python
+loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_src.token_to_id('[pad]'), label_smoothing=0.1).to(device)
+```
+
+`label_smoothing=0.1` takes some probability mass away from the "correct" token and spreads it across the rest of the vocabulary, so the model prevented from being over-confident.  
+`ignore_index` on the pad token keeps padding positions out of the loss entirely, since they carry no real supervision signal.
+
+::: {.callout-note title="Knowledge point :- Warmup and Noam schedule"}
+The paper's Noam schedule is:
+
+$$\text{lr} = d_{\text{model}}^{-0.5} \cdot \min(\text{step}^{-0.5},\ \text{step} \cdot \text{warmup}^{-1.5})$$
+
+linear ramp-up for the first `warmup_steps`, then inverse-square-root decay. This is done because it's the direct fix for the Post-LN problem from §6. More on warmup in [Link]
+:::
+
+`train.py` was also equipped to handle crash recovery from last checkpoint.  
+I used greedy decoding for inference, but beam search is a common alternative. More on that in later blogs.
+
+
+## ⭐ Honourable mentions: Dropout layers (They are everywhere !!!)
+
+While writting the code, I found we were using dropout in every next layer. So I set out to understand it's implementation and use of every single dropout.
+
+### 1. After Positional Encoding
+
+Applied on the sum of token embeddings + positional encodings.  
+Forces the model not to over-rely on any specific position or embedding dimension
+right from the start - regularizes the input before it enters the encoder/decoder stack.
+
+> Paper (Section 5.4): _"we apply dropout to the sums of the embeddings and the positional encodings."_
+
+---
+
+### 2. On Attention Weights (inside Attention block)
+
+Applied after softmax, before multiplying by V.  
+After softmax, each row is a probability distribution over all tokens.
+Without dropout, the model can memorize which tokens to always attend to
+(**attention collapse**). Dropout randomly zeroes out weights, forcing the model
+to spread attention and learn more robust, distributed patterns.
+
+---
+
+### 3. In Residual Connection block (On Sublayer Output)
+
+```python
+def forward(self, x, sublayer):
+    return x + self.dropout(sublayer(self.norm(x)))
+```
+
+Applied on the output of each sublayer (Attention or FeedForward),
+**before** adding back to the residual stream.  
+The sublayer output is the new information being added to the residual stream  
+Dropping parts of it forces the model not to rely too heavily on any single transformation
+
+> Paper: _"We apply dropout to the output of each sub-layer, before it is added to the sub-layer input."_
+
+---
+
+### 4. Inside FeedForward - Between the Two Linear Layers (Modern Addition)
+
+```python
+def forward(self, x):
+    x = F.relu(self.linear1(x))   # d_model → d_ff
+    x = self.dropout(x)            # NOT in original paper
+    x = self.linear2(x)            # d_ff → d_model
+    return x
+```
+
+**Not in the original paper** - added in modern implementations.
+
+The FFN expands to 4× the model size internally (`d_ff = 4 × d_model`).  
+In this large intermediate space, neurons can **co-adapt** - always firing together
+to produce memorized patterns.  
+The Residual Connection's dropout acts on the final
+compressed output and cannot prevent co-adaptation forming _inside_ the FFN.
+Internal dropout breaks this by regularizing the expanded space directly.
+
+---
+
+### Full Dropout Flow
+
+```
+Token IDs
+    │
+[Text Encoding]               ← no dropout
+    │
+    + [Positional Encoding]
+    │
+[Dropout] ◄─────────────────── #1: input representation
+    │
+┌───────── Encoder Layer ──────────┐
+│                                  │
+│  [LayerNorm]                     │
+│      │                           │
+│  [Attention]                     │
+│      │                           │
+│  [Dropout] ◄─────────────────── #2: attention weights (inside Attention)
+│      │                           │
+│  [Dropout] ◄─────────────────── #3: sublayer output (inside Residual)
+│      │                           │
+│   x + sublayer(x)               │
+│                                  │
+│  (same structure for FFN layer)  │
+│                                  │
+│  [Dropout] ◄─────────────────── #4: inside FFN between linears (modern only)
+│                                  │
+└──────────────────────────────────┘
+```
+
+### Hyperparameter
+
+All dropout locations share the **same `p` value**:
+
+- Base model: `p = 0.1`
+- Large model: `p = 0.3`
+
+It is a single hyperparameter tuned across the entire architecture.
+
+---
+
+## Loose Threads
+
+A couple of things that came up while reading through this code but don't belong in the transformer itself - they're the next two things on my list:
+
+::: {.callout-note title="Knowledge point :- KV cache"}
+Generating `M` new tokens with a prompt of length `N` naively costs `O(M · (N+M)²)`. Caching the key/value states from previous steps drops the *incremental* per-token cost to `O(1)` relative to history length, since only the new token's K/V needs computing.
+:::
+
+::: {.callout-note title="Knowledge point :- attention memory and FlashAttention"}
+Storing the full `[B, H, S, S]` attention score matrix for the backward pass is `O(S²)` memory. This is what makes long-context training memory-bound rather than compute-bound, and it's exactly the problem FlashAttention is built to avoid by never materializing the full matrix.
+:::
+
+---
+
+*Source: [Github repo](https://github.com/Ashley936/Transformers_expt/tree/main/Transformers)*

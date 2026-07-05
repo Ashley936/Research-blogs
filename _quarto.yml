@@ -1,0 +1,30 @@
+project:
+  type: website
+  output-dir: docs # GitHub Pages will serve from /docs
+
+website:
+  title: "Caffeine and chaos"
+  description: "A diary to store my notes, questions, project status and experiment findings."
+  navbar:
+    left:
+      - href: index.qmd
+        text: Posts
+      - about.qmd
+    right:
+      - icon: github
+        href: https://github.com/Ashley936
+      - icon: linkedin
+        href: https://www.linkedin.com/in/namita-rastogi-453224201/
+
+format:
+  html:
+    theme: cosmo # or "darkly", "flatly" — pick one and stick with it
+    css: styles.css
+    toc: true
+    code-fold: false # keep code visible by default for an ML audience
+    code-tools: true
+    highlight-style: github
+
+execute:
+  freeze: auto # cache execution, don't rerun unchanged code on every render
+
