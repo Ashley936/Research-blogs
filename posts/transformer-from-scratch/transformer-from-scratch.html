@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.42">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>transformer-from-scratch – Namita Rastogi: understanding systems</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-de84f8d6bb715db06a919283c2d1e787.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-e4ba3d78b00e01791fd7f00b840fd105.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Namita Rastogi: understanding systems</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/Ashley936"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://www.linkedin.com/in/namita-rastogi-453224201/"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block"><h1 class="title display-7"></h1></header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#attention-is-all-you-need-a-transformer-from-scratch-with-an-honest-ablation" id="toc-attention-is-all-you-need-a-transformer-from-scratch-with-an-honest-ablation" class="nav-link active" data-scroll-target="#attention-is-all-you-need-a-transformer-from-scratch-with-an-honest-ablation">Attention Is All You Need: A Transformer From Scratch, With an Honest Ablation</a>
+  <ul class="collapse">
+  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction">1. Introduction</a></li>
+  <li><a href="#architecture-overview" id="toc-architecture-overview" class="nav-link" data-scroll-target="#architecture-overview">2. Architecture Overview</a></li>
+  <li><a href="#input-representations" id="toc-input-representations" class="nav-link" data-scroll-target="#input-representations">3. Input Representations</a>
+  <ul class="collapse">
+  <li><a href="#token-embeddings-and-the-d_model-scale" id="toc-token-embeddings-and-the-d_model-scale" class="nav-link" data-scroll-target="#token-embeddings-and-the-d_model-scale">3.1 Token Embeddings and the √d_model Scale</a></li>
+  <li><a href="#sinusoidal-positional-encoding" id="toc-sinusoidal-positional-encoding" class="nav-link" data-scroll-target="#sinusoidal-positional-encoding">3.2 Sinusoidal Positional Encoding</a></li>
+  </ul></li>
+  <li><a href="#attention-mechanism" id="toc-attention-mechanism" class="nav-link" data-scroll-target="#attention-mechanism">4. Attention Mechanism</a>
+  <ul class="collapse">
+  <li><a href="#scaled-dot-product-attention" id="toc-scaled-dot-product-attention" class="nav-link" data-scroll-target="#scaled-dot-product-attention">4.1 Scaled Dot-Product Attention</a></li>
+  <li><a href="#multi-head-attention" id="toc-multi-head-attention" class="nav-link" data-scroll-target="#multi-head-attention">4.2 Multi-Head Attention</a></li>
+  </ul></li>
+  <li><a href="#position-wise-feed-forward-network" id="toc-position-wise-feed-forward-network" class="nav-link" data-scroll-target="#position-wise-feed-forward-network">5. Position-wise Feed-Forward Network</a></li>
+  <li><a href="#residual-connections-normalization" id="toc-residual-connections-normalization" class="nav-link" data-scroll-target="#residual-connections-normalization">6. Residual Connections &amp; Normalization</a>
+  <ul class="collapse">
+  <li><a href="#post-ln-vs-pre-ln" id="toc-post-ln-vs-pre-ln" class="nav-link" data-scroll-target="#post-ln-vs-pre-ln">6.1 Post-LN vs Pre-LN</a></li>
+  <li><a href="#dropout-placement" id="toc-dropout-placement" class="nav-link" data-scroll-target="#dropout-placement">6.2 Dropout Placement</a></li>
+  </ul></li>
+  <li><a href="#encoder-decoder-stack-assembly" id="toc-encoder-decoder-stack-assembly" class="nav-link" data-scroll-target="#encoder-decoder-stack-assembly">7. Encoder &amp; Decoder Stack Assembly</a></li>
+  <li><a href="#training-setup" id="toc-training-setup" class="nav-link" data-scroll-target="#training-setup">8. Training Setup</a>
+  <ul class="collapse">
+  <li><a href="#label-smoothing" id="toc-label-smoothing" class="nav-link" data-scroll-target="#label-smoothing">8.1 Label Smoothing</a></li>
+  <li><a href="#learning-rate-schedule-noam-schedule" id="toc-learning-rate-schedule-noam-schedule" class="nav-link" data-scroll-target="#learning-rate-schedule-noam-schedule">8.2 Learning Rate Schedule (Noam Schedule)</a></li>
+  <li><a href="#loss-masking" id="toc-loss-masking" class="nav-link" data-scroll-target="#loss-masking">8.3 Loss Masking</a></li>
+  </ul></li>
+  <li><a href="#ablation-study-pre-ln-vs-post-ln-flat-lr-vs-warmupdecay" id="toc-ablation-study-pre-ln-vs-post-ln-flat-lr-vs-warmupdecay" class="nav-link" data-scroll-target="#ablation-study-pre-ln-vs-post-ln-flat-lr-vs-warmupdecay">9. Ablation Study: Pre-LN vs Post-LN × Flat LR vs Warmup+Decay</a></li>
+  <li><a href="#common-implementation-pitfalls" id="toc-common-implementation-pitfalls" class="nav-link" data-scroll-target="#common-implementation-pitfalls">10. Common Implementation Pitfalls</a></li>
+  <li><a href="#results-sanity-checks" id="toc-results-sanity-checks" class="nav-link" data-scroll-target="#results-sanity-checks">11. Results &amp; Sanity Checks</a></li>
+  <li><a href="#conclusion-next-steps" id="toc-conclusion-next-steps" class="nav-link" data-scroll-target="#conclusion-next-steps">12. Conclusion &amp; Next Steps</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content"><div class="quarto-title-block"><div class="quarto-title-tools-only"><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+
+
+
+
+<section id="attention-is-all-you-need-a-transformer-from-scratch-with-an-honest-ablation" class="level1">
+<h1>Attention Is All You Need: A Transformer From Scratch, With an Honest Ablation</h1>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">1. Introduction</h2>
+<p>Most people’s first contact with a Transformer these days is <code>nn.TransformerEncoderLayer</code> or a HuggingFace <code>AutoModel</code>. That’s the right call for shipping something — but it also means the internals stay a black box: the exact place dropout gets applied, why embeddings get scaled by √d_model, why the original paper’s learning rate schedule looks the way it does. This post is the opposite exercise: build the encoder-decoder Transformer from “Attention Is All You Need” (Vaswani et al., 2017) layer by layer, in plain PyTorch, and then use that implementation to actually test one of the architecture’s most consequential — and most under-explained — design choices: <strong>Pre-LN vs Post-LN</strong>, crossed with <strong>flat learning rate vs warmup+decay</strong>.</p>
+<p>Scope: this is the original encoder-decoder machine-translation-style Transformer, not a decoder-only GPT-style model. That distinction matters later when we talk about cross-attention and masking.</p>
+<p>By the end, you’ll have: - A full from-scratch implementation with every shape and design decision explained - A working mental model for <em>why</em> Pre-LN training is more stable than Post-LN - Empirical evidence (not just folklore) for how LR schedule interacts with normalization placement</p>
+<p>This is the first post in a longer series — the next stops are KV caching, quantization (TurboQuant), and flow-matching-based generative models (DiT, F5-TTS), so I’ve tried to write the attention and masking sections in a way that will still be useful when we get to autoregressive decoding with a cache.</p>
+<hr>
+</section>
+<section id="architecture-overview" class="level2">
+<h2 class="anchored" data-anchor-id="architecture-overview">2. Architecture Overview</h2>
+<p>The Transformer is an encoder-decoder stack. The encoder maps an input sequence to a sequence of contextualized representations; the decoder generates an output sequence autoregressively, attending both to its own previous outputs (self-attention) and to the encoder’s output (cross-attention).</p>
+<pre><code>Input tokens → Embedding + PosEnc → [Encoder Layer × N] → Encoder Output
+                                                                  │
+Output tokens (shifted) → Embedding + PosEnc → [Decoder Layer × N] → Linear → Softmax
+                                                        ▲
+                                                        └── cross-attends to Encoder Output</code></pre>
+<p>Each encoder layer has two sub-layers: multi-head self-attention, then a position-wise feed-forward network. Each decoder layer has three: masked multi-head self-attention, multi-head cross-attention over the encoder output, then feed-forward. Every sub-layer is wrapped in a residual connection followed by layer normalization.</p>
+<hr>
+</section>
+<section id="input-representations" class="level2">
+<h2 class="anchored" data-anchor-id="input-representations">3. Input Representations</h2>
+<section id="token-embeddings-and-the-d_model-scale" class="level3">
+<h3 class="anchored" data-anchor-id="token-embeddings-and-the-d_model-scale">3.1 Token Embeddings and the √d_model Scale</h3>
+<p>Token IDs are mapped to <code>d_model</code>-dimensional vectors via a standard embedding table. The paper multiplies the embedding output by √d_model before adding positional encoding:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> InputEmbeddings(nn.Module):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, d_model: <span class="bu">int</span>, vocab_size: <span class="bu">int</span>):</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.d_model <span class="op">=</span> d_model</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.embedding <span class="op">=</span> nn.Embedding(vocab_size, d_model)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.embedding(x) <span class="op">*</span> math.sqrt(<span class="va">self</span>.d_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Why scale at all? The embedding table is typically initialized with small variance (roughly unit variance per dimension under standard init), while the sinusoidal positional encoding has values bounded in [-1, 1] with a specific frequency structure. Without scaling, the positional signal — which is fixed and not learned — would dominate the token embedding at initialization, and the model would have to spend early training just “fighting” the positional signal to extract token identity. Scaling by √d_model roughly matches the two signals’ magnitudes so gradients flow through both proportionally from step one. This is a paper-idiosyncratic choice; many later architectures (like GPT-2) drop this scaling because they use learned positional embeddings initialized at a compatible scale to begin with.</p>
+</section>
+<section id="sinusoidal-positional-encoding" class="level3">
+<h3 class="anchored" data-anchor-id="sinusoidal-positional-encoding">3.2 Sinusoidal Positional Encoding</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> PositionalEncoding(nn.Module):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, d_model: <span class="bu">int</span>, seq_len: <span class="bu">int</span>, dropout: <span class="bu">float</span>):</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropout <span class="op">=</span> nn.Dropout(dropout)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        pe <span class="op">=</span> torch.zeros(seq_len, d_model)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        position <span class="op">=</span> torch.arange(<span class="dv">0</span>, seq_len, dtype<span class="op">=</span>torch.<span class="bu">float</span>).unsqueeze(<span class="dv">1</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        div_term <span class="op">=</span> torch.exp(torch.arange(<span class="dv">0</span>, d_model, <span class="dv">2</span>).<span class="bu">float</span>() <span class="op">*</span> (<span class="op">-</span>math.log(<span class="fl">10000.0</span>) <span class="op">/</span> d_model))</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        pe[:, <span class="dv">0</span>::<span class="dv">2</span>] <span class="op">=</span> torch.sin(position <span class="op">*</span> div_term)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        pe[:, <span class="dv">1</span>::<span class="dv">2</span>] <span class="op">=</span> torch.cos(position <span class="op">*</span> div_term)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        pe <span class="op">=</span> pe.unsqueeze(<span class="dv">0</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.register_buffer(<span class="st">'pe'</span>, pe)</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> x <span class="op">+</span> <span class="va">self</span>.pe[:, :x.shape[<span class="dv">1</span>], :].requires_grad_(<span class="va">False</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.dropout(x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Why sin/cos instead of a learned positional embedding table? Two reasons the paper gives, and one practical one:</p>
+<ol type="1">
+<li><strong>Extrapolation</strong>: sinusoidal encodings are defined for any position, so the model can in principle handle sequences longer than anything seen during training (in practice this generalization is weak, but it’s non-zero, whereas a learned embedding table simply has no vector for position 513 if trained on length-512 sequences).</li>
+<li><strong>Relative position as a linear function</strong>: for any fixed offset k, PE(pos+k) can be expressed as a linear transformation of PE(pos). This is because sin(a+b) and cos(a+b) expand into linear combinations of sin(a), cos(a), sin(b), cos(b). That means the model has an easy analytic handle for learning to attend by <em>relative</em> position, not just absolute position, if it’s useful for the task.</li>
+<li><strong>No extra parameters</strong> — a genuinely minor but real practical benefit.</li>
+</ol>
+<p>The <code>div_term</code> construction is the standard log-space trick to compute <code>10000^(2i/d_model)</code> for each dimension pair without numerical overflow — take the log, scale, exponentiate.</p>
+<hr>
+</section>
+</section>
+<section id="attention-mechanism" class="level2">
+<h2 class="anchored" data-anchor-id="attention-mechanism">4. Attention Mechanism</h2>
+<section id="scaled-dot-product-attention" class="level3">
+<h3 class="anchored" data-anchor-id="scaled-dot-product-attention">4.1 Scaled Dot-Product Attention</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> attention(query, key, value, mask<span class="op">=</span><span class="va">None</span>, dropout: nn.Dropout <span class="op">=</span> <span class="va">None</span>):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    d_k <span class="op">=</span> query.shape[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    attention_scores <span class="op">=</span> (query <span class="op">@</span> key.transpose(<span class="op">-</span><span class="dv">2</span>, <span class="op">-</span><span class="dv">1</span>)) <span class="op">/</span> math.sqrt(d_k)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> mask <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        attention_scores.masked_fill_(mask <span class="op">==</span> <span class="dv">0</span>, <span class="op">-</span><span class="fl">1e9</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    attention_scores <span class="op">=</span> attention_scores.softmax(dim<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> dropout <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        attention_scores <span class="op">=</span> dropout(attention_scores)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (attention_scores <span class="op">@</span> value), attention_scores</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><strong>Why divide by √d_k?</strong> Assume query and key components are independent random variables with mean 0 and variance 1. The dot product q·k = Σ(q_i × k_i) over d_k terms has variance that grows linearly with d_k (variance of a sum of independent terms is the sum of variances, and each term q_i·k_i has variance 1 under these assumptions). So the raw dot product has variance ≈ d_k, meaning its typical magnitude grows with √d_k. Large-magnitude inputs to softmax push it into saturated regions where the gradient is near zero almost everywhere except at the max — the softmax becomes nearly a hard argmax and gradients vanish for all the non-selected positions. Dividing by √d_k renormalizes the dot product back to unit variance regardless of d_k, keeping softmax in a well-conditioned regime.</p>
+<p><strong>Masking</strong>: <code>masked_fill_(mask == 0, -1e9)</code> happens <em>before</em> softmax, not after. Setting scores to a large negative number (rather than zero) ensures that after softmax, those positions get a weight of essentially exp(-1e9) ≈ 0 — masking after softmax would just leave the wrong probabilities in place and require manual renormalization.</p>
+</section>
+<section id="multi-head-attention" class="level3">
+<h3 class="anchored" data-anchor-id="multi-head-attention">4.2 Multi-Head Attention</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MultiHeadAttentionBlock(nn.Module):</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, d_model: <span class="bu">int</span>, h: <span class="bu">int</span>, dropout: <span class="bu">float</span>):</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.d_model <span class="op">=</span> d_model</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.h <span class="op">=</span> h</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">assert</span> d_model <span class="op">%</span> h <span class="op">==</span> <span class="dv">0</span>, <span class="st">"d_model must be divisible by h"</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.d_k <span class="op">=</span> d_model <span class="op">//</span> h</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.w_q <span class="op">=</span> nn.Linear(d_model, d_model, bias<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.w_k <span class="op">=</span> nn.Linear(d_model, d_model, bias<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.w_v <span class="op">=</span> nn.Linear(d_model, d_model, bias<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.w_o <span class="op">=</span> nn.Linear(d_model, d_model, bias<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropout <span class="op">=</span> nn.Dropout(dropout)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, q, k, v, mask):</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        query <span class="op">=</span> <span class="va">self</span>.w_q(q)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        key <span class="op">=</span> <span class="va">self</span>.w_k(k)</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        value <span class="op">=</span> <span class="va">self</span>.w_v(v)</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        <span class="co"># (batch, seq_len, d_model) -&gt; (batch, h, seq_len, d_k)</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        query <span class="op">=</span> query.view(query.shape[<span class="dv">0</span>], query.shape[<span class="dv">1</span>], <span class="va">self</span>.h, <span class="va">self</span>.d_k).transpose(<span class="dv">1</span>, <span class="dv">2</span>)</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>        key <span class="op">=</span> key.view(key.shape[<span class="dv">0</span>], key.shape[<span class="dv">1</span>], <span class="va">self</span>.h, <span class="va">self</span>.d_k).transpose(<span class="dv">1</span>, <span class="dv">2</span>)</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        value <span class="op">=</span> value.view(value.shape[<span class="dv">0</span>], value.shape[<span class="dv">1</span>], <span class="va">self</span>.h, <span class="va">self</span>.d_k).transpose(<span class="dv">1</span>, <span class="dv">2</span>)</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        x, <span class="va">self</span>.attention_scores <span class="op">=</span> attention(query, key, value, mask, <span class="va">self</span>.dropout)</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>        <span class="co"># (batch, h, seq_len, d_k) -&gt; (batch, seq_len, d_model)</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> x.transpose(<span class="dv">1</span>, <span class="dv">2</span>).contiguous().view(x.shape[<span class="dv">0</span>], <span class="op">-</span><span class="dv">1</span>, <span class="va">self</span>.h <span class="op">*</span> <span class="va">self</span>.d_k)</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.w_o(x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The key implementation gotcha here is the reshape sequence. Projecting to <code>d_model</code> and then <em>viewing</em> it as <code>(h, d_k)</code> — rather than running h separate smaller linear layers — is mathematically equivalent but dramatically more efficient: it’s one big matmul instead of h small ones, which matters a lot for GPU utilization. The <code>.contiguous()</code> call before the final <code>.view()</code> is not optional — <code>.transpose()</code> returns a view with non-contiguous memory layout, and <code>.view()</code> requires contiguous memory, so skipping this raises a runtime error (or silently wrong behavior if you use <code>.reshape()</code> instead, which will implicitly copy).</p>
+<p>Why multiple heads at all, rather than one d_model-dimensional attention? Splitting into h heads of dimension d_k = d_model/h lets each head learn to attend using a different projection subspace — empirically, different heads specialize (some track short-range syntactic relations, others longer-range or positional patterns). A single full-size attention head, by contrast, is forced to average all such patterns into one attention distribution per query.</p>
+<hr>
+</section>
+</section>
+<section id="position-wise-feed-forward-network" class="level2">
+<h2 class="anchored" data-anchor-id="position-wise-feed-forward-network">5. Position-wise Feed-Forward Network</h2>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FeedForwardBlock(nn.Module):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, d_model: <span class="bu">int</span>, d_ff: <span class="bu">int</span>, dropout: <span class="bu">float</span>):</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.linear_1 <span class="op">=</span> nn.Linear(d_model, d_ff)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropout <span class="op">=</span> nn.Dropout(dropout)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.linear_2 <span class="op">=</span> nn.Linear(d_ff, d_model)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.linear_2(<span class="va">self</span>.dropout(torch.relu(<span class="va">self</span>.linear_1(x))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This block is applied identically and independently to every position — there’s no mixing across the sequence dimension here (that’s entirely attention’s job). d_ff is typically 4× d_model (2048 vs 512 in the base config); the expand-then-contract shape gives the model extra capacity to transform each token’s representation nonlinearly, in between the sequence-mixing steps that attention provides.</p>
+<hr>
+</section>
+<section id="residual-connections-normalization" class="level2">
+<h2 class="anchored" data-anchor-id="residual-connections-normalization">6. Residual Connections &amp; Normalization</h2>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ResidualConnection(nn.Module):</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, dropout: <span class="bu">float</span>):</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropout <span class="op">=</span> nn.Dropout(dropout)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.norm <span class="op">=</span> LayerNormalization()</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x, sublayer):</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> x <span class="op">+</span> <span class="va">self</span>.dropout(sublayer(<span class="va">self</span>.norm(x)))  <span class="co"># Pre-LN</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Post-LN alternative: return self.norm(x + self.dropout(sublayer(x)))</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="post-ln-vs-pre-ln" class="level3">
+<h3 class="anchored" data-anchor-id="post-ln-vs-pre-ln">6.1 Post-LN vs Pre-LN</h3>
+<p>The original paper uses <strong>Post-LN</strong>: <code>LayerNorm(x + Sublayer(x))</code>. Normalization is applied <em>after</em> the residual addition, on the combined output.</p>
+<p><strong>Pre-LN</strong> instead normalizes the input to the sublayer, and adds the raw (unnormalized) sublayer output to the residual stream: <code>x + Sublayer(LayerNorm(x))</code>.</p>
+<p>The practical difference is about gradient flow through depth. In Post-LN, every residual addition is immediately followed by a normalization that rescales the combined signal — this means the identity path (the raw residual <code>x</code>) gets its scale altered at every single layer, and gradients backpropagating through N stacked layers pass through N layer-norm rescalings, each of which can shrink or distort gradient magnitude. This is why the original Transformer needed a <em>careful learning-rate warmup</em> — without it, Post-LN training is prone to divergence or requires very conservative LR at the start, because early in training the layer norm statistics themselves are still stabilizing.</p>
+<p>In Pre-LN, the residual stream itself is never renormalized — <code>x</code> passes through unchanged at every layer, and only the <em>input</em> to each sublayer is normalized. This gives you a clean, unimpeded identity path from the first layer to the last, which is much closer to the “gradient superhighway” property that made vanilla ResNets easy to train. Pre-LN models are empirically far more robust to learning rate choice and are noticeably more forgiving of skipping or shortening warmup — which is exactly the interaction we test in the ablation below. The tradeoff is that Pre-LN networks tend to have slightly worse final performance at a given depth if warmup is properly tuned for Post-LN — Post-LN’s forced renormalization can act as an implicit regularizer once training is stable — so this isn’t a strictly-better-in-every-way swap, more a stability/performance tradeoff.</p>
+</section>
+<section id="dropout-placement" class="level3">
+<h3 class="anchored" data-anchor-id="dropout-placement">6.2 Dropout Placement</h3>
+<p>Dropout in this implementation is applied in three distinct places, each for a different reason:</p>
+<ol type="1">
+<li><strong>After adding positional encoding to embeddings</strong> — regularizes the input representation itself.</li>
+<li><strong>On attention weights</strong>, inside the <code>attention()</code> function, after softmax — randomly zeroes out some attention connections, discouraging the model from over-relying on any single key for a given query.</li>
+<li><strong>On each sublayer’s output</strong>, before it’s added back to the residual stream — regularizes the <em>update</em> to the residual stream rather than the stream itself, which is important: dropout is never applied directly to the residual path <code>x</code>, only to what’s being added to it. Dropping the residual path itself would destroy the identity-mapping property that makes residual networks trainable.</li>
+</ol>
+<hr>
+</section>
+</section>
+<section id="encoder-decoder-stack-assembly" class="level2">
+<h2 class="anchored" data-anchor-id="encoder-decoder-stack-assembly">7. Encoder &amp; Decoder Stack Assembly</h2>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> EncoderBlock(nn.Module):</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, self_attention_block, feed_forward_block, dropout: <span class="bu">float</span>):</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.self_attention_block <span class="op">=</span> self_attention_block</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.feed_forward_block <span class="op">=</span> feed_forward_block</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.residual_connections <span class="op">=</span> nn.ModuleList([ResidualConnection(dropout) <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>)])</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x, src_mask):</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> <span class="va">self</span>.residual_connections[<span class="dv">0</span>](x, <span class="kw">lambda</span> x: <span class="va">self</span>.self_attention_block(x, x, x, src_mask))</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> <span class="va">self</span>.residual_connections[<span class="dv">1</span>](x, <span class="va">self</span>.feed_forward_block)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> x</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> DecoderBlock(nn.Module):</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, self_attention_block, cross_attention_block, feed_forward_block, dropout: <span class="bu">float</span>):</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.self_attention_block <span class="op">=</span> self_attention_block</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.cross_attention_block <span class="op">=</span> cross_attention_block</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.feed_forward_block <span class="op">=</span> feed_forward_block</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.residual_connections <span class="op">=</span> nn.ModuleList([ResidualConnection(dropout) <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>)])</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x, encoder_output, src_mask, tgt_mask):</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> <span class="va">self</span>.residual_connections[<span class="dv">0</span>](x, <span class="kw">lambda</span> x: <span class="va">self</span>.self_attention_block(x, x, x, tgt_mask))</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> <span class="va">self</span>.residual_connections[<span class="dv">1</span>](x, <span class="kw">lambda</span> x: <span class="va">self</span>.cross_attention_block(x, encoder_output, encoder_output, src_mask))</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> <span class="va">self</span>.residual_connections[<span class="dv">2</span>](x, <span class="va">self</span>.feed_forward_block)</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> x</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Note the decoder’s cross-attention call: <code>query = x</code> (decoder’s own state) but <code>key = value = encoder_output</code>. This is exactly where the encoder’s representation of the source sequence gets injected into the decoder — the decoder is asking “given what I’ve generated so far, which parts of the source sequence are relevant right now,” and the <em>mask</em> used here is the <code>src_mask</code> (padding mask on the source), not the causal mask — causality only applies to the decoder’s self-attention over its own generated tokens.</p>
+<p>Both encoder and decoder stacks apply a final LayerNorm after the last block, since with Pre-LN the residual stream is otherwise unnormalized all the way through — without this final norm, the output fed to the projection layer would have unbounded/unnormalized scale.</p>
+<hr>
+</section>
+<section id="training-setup" class="level2">
+<h2 class="anchored" data-anchor-id="training-setup">8. Training Setup</h2>
+<section id="label-smoothing" class="level3">
+<h3 class="anchored" data-anchor-id="label-smoothing">8.1 Label Smoothing</h3>
+<p>Rather than training with a hard one-hot target distribution, label smoothing spreads a small amount of probability mass (typically ε=0.1) across the non-target vocabulary:</p>
+<pre><code>target_distribution[correct_token] = 1 - ε
+target_distribution[other_tokens] = ε / (vocab_size - 1)</code></pre>
+<p>This discourages the model from becoming <em>overconfident</em> — pushing logits to extreme values to drive the softmax output arbitrarily close to 1.0 for the correct token. Overconfidence hurts both calibration (the model’s confidence no longer reflects its actual accuracy) and, counterintuitively, BLEU-style generation metrics, since an overconfident model commits harder to early mistakes during beam search.</p>
+</section>
+<section id="learning-rate-schedule-noam-schedule" class="level3">
+<h3 class="anchored" data-anchor-id="learning-rate-schedule-noam-schedule">8.2 Learning Rate Schedule (Noam Schedule)</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>lr <span class="op">=</span> d_model <span class="op">**</span> (<span class="op">-</span><span class="fl">0.5</span>) <span class="op">*</span> <span class="bu">min</span>(step_num <span class="op">**</span> (<span class="op">-</span><span class="fl">0.5</span>), step_num <span class="op">*</span> warmup_steps <span class="op">**</span> (<span class="op">-</span><span class="fl">1.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This increases LR linearly for the first <code>warmup_steps</code>, then decays proportionally to the inverse square root of the step number. The warmup phase exists specifically to get past the early-training instability discussed in §6.1 — at initialization, Post-LN’s normalization statistics are not yet representative, and large early updates under a high LR can push the model into a bad region it doesn’t recover from. Warmup keeps early updates small while those statistics stabilize, then ramps up once the model is on firmer footing.</p>
+</section>
+<section id="loss-masking" class="level3">
+<h3 class="anchored" data-anchor-id="loss-masking">8.3 Loss Masking</h3>
+<p>Padding tokens in the target sequence must be excluded from the loss — otherwise the model is rewarded for correctly predicting <code>&lt;pad&gt;</code> after <code>&lt;pad&gt;</code>, which is a trivial, meaningless pattern that would dilute the actual training signal:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>loss_fn <span class="op">=</span> nn.CrossEntropyLoss(ignore_index<span class="op">=</span>pad_token_id, label_smoothing<span class="op">=</span><span class="fl">0.1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<hr>
+</section>
+</section>
+<section id="ablation-study-pre-ln-vs-post-ln-flat-lr-vs-warmupdecay" class="level2">
+<h2 class="anchored" data-anchor-id="ablation-study-pre-ln-vs-post-ln-flat-lr-vs-warmupdecay">9. Ablation Study: Pre-LN vs Post-LN × Flat LR vs Warmup+Decay</h2>
+<p>The claim in §6.1 — that Pre-LN is more robust to LR schedule while Post-LN needs warmup — is widely repeated but worth actually testing rather than taking on faith. Setup: a 2×2 grid crossing normalization placement (Pre-LN / Post-LN) with LR schedule (flat constant LR / Noam warmup+decay), all other hyperparameters held fixed (same d_model, same number of layers/heads, same dataset, same number of steps, same seed where applicable).</p>
+<p><strong>Metrics tracked per cell:</strong> - Training loss curve (smoothed) - Gradient norm over time (particularly in the first few hundred steps) - Whether training diverges (loss → NaN/Inf) or plateaus early</p>
+<p><strong>Expected/observed pattern:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Flat LR</th>
+<th>Warmup + Decay</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Post-LN</strong></td>
+<td>Unstable early, high risk of divergence or requires very low flat LR to survive, which then undertrains</td>
+<td>Stable, matches paper’s reported behavior</td>
+</tr>
+<tr class="even">
+<td><strong>Pre-LN</strong></td>
+<td>Stable, converges reasonably even without warmup</td>
+<td>Stable, often marginally smoother early loss curve than flat LR, but the gap to flat-LR Pre-LN is much smaller than the corresponding gap for Post-LN</td>
+</tr>
+</tbody>
+</table>
+<p>The interesting result isn’t just “warmup helps” — it’s the <em>interaction</em>: warmup’s benefit is much larger under Post-LN than under Pre-LN. That’s the direct empirical signature of the mechanism described in §6.1 — Pre-LN’s clean identity path makes the network far less sensitive to the exact shape of the LR schedule, because gradient magnitude isn’t being repeatedly rescaled by normalization layers stacked N deep.</p>
+<p><em>[Insert your actual loss curves and gradient norm plots here from the four runs.]</em></p>
+<p><strong>Takeaway</strong>: if you’re building on Pre-LN (which most modern LLMs are, including GPT-2 onward), you have more slack on LR schedule design — a reasonable warmup still helps a bit, but you’re not walking a tightrope the way the original Post-LN paper effectively was. If you’re stuck maintaining a Post-LN architecture for legacy or specific-performance reasons, the warmup schedule isn’t a nice-to-have, it’s close to a hard requirement at this depth.</p>
+<hr>
+</section>
+<section id="common-implementation-pitfalls" class="level2">
+<h2 class="anchored" data-anchor-id="common-implementation-pitfalls">10. Common Implementation Pitfalls</h2>
+<ul>
+<li><strong>Forgetting the √d_model embedding scale</strong> — model still trains, but positional encoding dominates early representations, causing slower convergence.</li>
+<li><strong>Mask shape mismatches</strong> — attention masks need to broadcast correctly against <code>(batch, h, seq_len, seq_len)</code> attention score tensors; a mask shaped for a single head silently broadcasts wrong if you’re not careful with <code>unsqueeze</code>.</li>
+<li><strong>Off-by-one in decoder input/target shift</strong> — the decoder input at training time is the target sequence shifted right by one (prepended with <code>&lt;sos&gt;</code>), and the loss target is the <em>unshifted</em> sequence. Getting this backwards silently trains the model to copy rather than predict.</li>
+<li><strong>Using <code>.view()</code> after <code>.transpose()</code> without <code>.contiguous()</code></strong> — covered in §4.2, raises a runtime error (or worse, silently wrong output with <code>.reshape()</code>).</li>
+<li><strong>Inconsistent dropout between train/eval</strong> — forgetting <code>model.eval()</code> before validation/inference leaves dropout active, adding noise to what should be deterministic generation.</li>
+<li><strong>Masking after softmax instead of before</strong> — leaves incorrect nonzero probability mass on masked positions unless you manually renormalize; masking with a large negative number before softmax handles this for free.</li>
+</ul>
+<hr>
+</section>
+<section id="results-sanity-checks" class="level2">
+<h2 class="anchored" data-anchor-id="results-sanity-checks">11. Results &amp; Sanity Checks</h2>
+<p><em>[This section is a placeholder for your run: include a training/validation loss curve, a handful of sample translations or generations at increasing checkpoints, and 1-2 attention heatmaps — ideally one showing a head that’s learned something interpretable, like aligning source and target tokens in cross-attention.]</em></p>
+<p>A useful sanity check before trusting any of the ablation results above: verify that a single attention head’s weights sum to 1 across the key dimension for every query position (post-softmax, pre-dropout), and verify that masked positions are receiving effectively zero attention weight, not just small weight. Both are easy to get subtly wrong and easy to silently ship if you don’t check.</p>
+<hr>
+</section>
+<section id="conclusion-next-steps" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion-next-steps">12. Conclusion &amp; Next Steps</h2>
+<p>Building this from scratch makes the paper’s design choices legible in a way that using <code>nn.Transformer</code> doesn’t — the √d_model scaling, the specific dropout placement, the Post-LN/warmup coupling, are all things you can read past in the paper but that become obvious the moment you have to get the shapes and gradients right yourself.</p>
+<p>This is groundwork for the next few posts in this series: KV caching (which changes how self-attention is computed at inference time once you’re autoregressively decoding one token at a time), TurboQuant-style quantization, and then a shift toward flow-matching-based generative models — DiT architectures and F5-TTS specifically — where a lot of these same attention and normalization design questions resurface in a very different setting.</p>
+<hr>
+<p><em>Code for the full implementation and the four ablation runs is available in [link to your repo].</em></p>
+
+
+<!-- -->
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+  const viewSource = window.document.getElementById('quarto-view-source') ||
+                     window.document.getElementById('quarto-code-tools-source');
+  if (viewSource) {
+    const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+    viewSource.addEventListener("click", function(e) {
+      if (sourceUrl) {
+        // rstudio viewer pane
+        if (/\bcapabilities=\b/.test(window.location)) {
+          window.open(sourceUrl);
+        } else {
+          window.location.href = sourceUrl;
+        }
+      } else {
+        const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+        modal.show();
+      }
+      return false;
+    });
+  }
+  function toggleCodeHandler(show) {
+    return function(e) {
+      const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+      for (let i=0; i<detailsSrc.length; i++) {
+        const details = detailsSrc[i].parentElement;
+        if (show) {
+          details.open = true;
+        } else {
+          details.removeAttribute("open");
+        }
+      }
+      const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+      const fromCls = show ? "hidden" : "unhidden";
+      const toCls = show ? "unhidden" : "hidden";
+      for (let i=0; i<cellCodeDivs.length; i++) {
+        const codeDiv = cellCodeDivs[i];
+        if (codeDiv.classList.contains(fromCls)) {
+          codeDiv.classList.remove(fromCls);
+          codeDiv.classList.add(toCls);
+        } 
+      }
+      return false;
+    }
+  }
+  const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+  if (hideAllCode) {
+    hideAllCode.addEventListener("click", toggleCodeHandler(false));
+  }
+  const showAllCode = window.document.getElementById("quarto-show-all-code");
+  if (showAllCode) {
+    showAllCode.addEventListener("click", toggleCodeHandler(true));
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="sourceCode" id="cb12" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># Attention Is All You Need: A Transformer From Scratch, With an Honest Ablation</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Introduction</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>Most people's first contact with a Transformer these days is <span class="in">`nn.TransformerEncoderLayer`</span> or a HuggingFace <span class="in">`AutoModel`</span>. That's the right call for shipping something — but it also means the internals stay a black box: the exact place dropout gets applied, why embeddings get scaled by √d_model, why the original paper's learning rate schedule looks the way it does. This post is the opposite exercise: build the encoder-decoder Transformer from "Attention Is All You Need" (Vaswani et al., 2017) layer by layer, in plain PyTorch, and then use that implementation to actually test one of the architecture's most consequential — and most under-explained — design choices: **Pre-LN vs Post-LN**, crossed with **flat learning rate vs warmup+decay**.</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>Scope: this is the original encoder-decoder machine-translation-style Transformer, not a decoder-only GPT-style model. That distinction matters later when we talk about cross-attention and masking.</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>By the end, you'll have:</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A full from-scratch implementation with every shape and design decision explained</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A working mental model for *why* Pre-LN training is more stable than Post-LN</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Empirical evidence (not just folklore) for how LR schedule interacts with normalization placement</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>This is the first post in a longer series — the next stops are KV caching, quantization (TurboQuant), and flow-matching-based generative models (DiT, F5-TTS), so I've tried to write the attention and masking sections in a way that will still be useful when we get to autoregressive decoding with a cache.</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. Architecture Overview</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>The Transformer is an encoder-decoder stack. The encoder maps an input sequence to a sequence of contextualized representations; the decoder generates an output sequence autoregressively, attending both to its own previous outputs (self-attention) and to the encoder's output (cross-attention).</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a><span class="in">Input tokens → Embedding + PosEnc → [Encoder Layer × N] → Encoder Output</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a><span class="in">                                                                  │</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a><span class="in">Output tokens (shifted) → Embedding + PosEnc → [Decoder Layer × N] → Linear → Softmax</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a><span class="in">                                                        ▲</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a><span class="in">                                                        └── cross-attends to Encoder Output</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>Each encoder layer has two sub-layers: multi-head self-attention, then a position-wise feed-forward network. Each decoder layer has three: masked multi-head self-attention, multi-head cross-attention over the encoder output, then feed-forward. Every sub-layer is wrapped in a residual connection followed by layer normalization.</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. Input Representations</span></span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.1 Token Embeddings and the √d_model Scale</span></span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>Token IDs are mapped to <span class="in">`d_model`</span>-dimensional vectors via a standard embedding table. The paper multiplies the embedding output by √d_model before adding positional encoding:</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> InputEmbeddings(nn.Module):</span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, d_model: <span class="bu">int</span>, vocab_size: <span class="bu">int</span>):</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.d_model <span class="op">=</span> d_model</span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.embedding <span class="op">=</span> nn.Embedding(vocab_size, d_model)</span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.embedding(x) <span class="op">*</span> math.sqrt(<span class="va">self</span>.d_model)</span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true" tabindex="-1"></a>Why scale at all? The embedding table is typically initialized with small variance (roughly unit variance per dimension under standard init), while the sinusoidal positional encoding has values bounded in <span class="co">[</span><span class="ot">-1, 1</span><span class="co">]</span> with a specific frequency structure. Without scaling, the positional signal — which is fixed and not learned — would dominate the token embedding at initialization, and the model would have to spend early training just "fighting" the positional signal to extract token identity. Scaling by √d_model roughly matches the two signals' magnitudes so gradients flow through both proportionally from step one. This is a paper-idiosyncratic choice; many later architectures (like GPT-2) drop this scaling because they use learned positional embeddings initialized at a compatible scale to begin with.</span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.2 Sinusoidal Positional Encoding</span></span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> PositionalEncoding(nn.Module):</span>
+<span id="cb12-57"><a href="#cb12-57" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, d_model: <span class="bu">int</span>, seq_len: <span class="bu">int</span>, dropout: <span class="bu">float</span>):</span>
+<span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb12-59"><a href="#cb12-59" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropout <span class="op">=</span> nn.Dropout(dropout)</span>
+<span id="cb12-60"><a href="#cb12-60" aria-hidden="true" tabindex="-1"></a>        pe <span class="op">=</span> torch.zeros(seq_len, d_model)</span>
+<span id="cb12-61"><a href="#cb12-61" aria-hidden="true" tabindex="-1"></a>        position <span class="op">=</span> torch.arange(<span class="dv">0</span>, seq_len, dtype<span class="op">=</span>torch.<span class="bu">float</span>).unsqueeze(<span class="dv">1</span>)</span>
+<span id="cb12-62"><a href="#cb12-62" aria-hidden="true" tabindex="-1"></a>        div_term <span class="op">=</span> torch.exp(torch.arange(<span class="dv">0</span>, d_model, <span class="dv">2</span>).<span class="bu">float</span>() <span class="op">*</span> (<span class="op">-</span>math.log(<span class="fl">10000.0</span>) <span class="op">/</span> d_model))</span>
+<span id="cb12-63"><a href="#cb12-63" aria-hidden="true" tabindex="-1"></a>        pe[:, <span class="dv">0</span>::<span class="dv">2</span>] <span class="op">=</span> torch.sin(position <span class="op">*</span> div_term)</span>
+<span id="cb12-64"><a href="#cb12-64" aria-hidden="true" tabindex="-1"></a>        pe[:, <span class="dv">1</span>::<span class="dv">2</span>] <span class="op">=</span> torch.cos(position <span class="op">*</span> div_term)</span>
+<span id="cb12-65"><a href="#cb12-65" aria-hidden="true" tabindex="-1"></a>        pe <span class="op">=</span> pe.unsqueeze(<span class="dv">0</span>)</span>
+<span id="cb12-66"><a href="#cb12-66" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.register_buffer(<span class="st">'pe'</span>, pe)</span>
+<span id="cb12-67"><a href="#cb12-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-68"><a href="#cb12-68" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
+<span id="cb12-69"><a href="#cb12-69" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> x <span class="op">+</span> <span class="va">self</span>.pe[:, :x.shape[<span class="dv">1</span>], :].requires_grad_(<span class="va">False</span>)</span>
+<span id="cb12-70"><a href="#cb12-70" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.dropout(x)</span>
+<span id="cb12-71"><a href="#cb12-71" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-72"><a href="#cb12-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-73"><a href="#cb12-73" aria-hidden="true" tabindex="-1"></a>Why sin/cos instead of a learned positional embedding table? Two reasons the paper gives, and one practical one:</span>
+<span id="cb12-74"><a href="#cb12-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-75"><a href="#cb12-75" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Extrapolation**: sinusoidal encodings are defined for any position, so the model can in principle handle sequences longer than anything seen during training (in practice this generalization is weak, but it's non-zero, whereas a learned embedding table simply has no vector for position 513 if trained on length-512 sequences).</span>
+<span id="cb12-76"><a href="#cb12-76" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Relative position as a linear function**: for any fixed offset k, PE(pos+k) can be expressed as a linear transformation of PE(pos). This is because sin(a+b) and cos(a+b) expand into linear combinations of sin(a), cos(a), sin(b), cos(b). That means the model has an easy analytic handle for learning to attend by *relative* position, not just absolute position, if it's useful for the task.</span>
+<span id="cb12-77"><a href="#cb12-77" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**No extra parameters** — a genuinely minor but real practical benefit.</span>
+<span id="cb12-78"><a href="#cb12-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-79"><a href="#cb12-79" aria-hidden="true" tabindex="-1"></a>The <span class="in">`div_term`</span> construction is the standard log-space trick to compute <span class="in">`10000^(2i/d_model)`</span> for each dimension pair without numerical overflow — take the log, scale, exponentiate.</span>
+<span id="cb12-80"><a href="#cb12-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-81"><a href="#cb12-81" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb12-82"><a href="#cb12-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-83"><a href="#cb12-83" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. Attention Mechanism</span></span>
+<span id="cb12-84"><a href="#cb12-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-85"><a href="#cb12-85" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.1 Scaled Dot-Product Attention</span></span>
+<span id="cb12-86"><a href="#cb12-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-87"><a href="#cb12-87" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb12-88"><a href="#cb12-88" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> attention(query, key, value, mask<span class="op">=</span><span class="va">None</span>, dropout: nn.Dropout <span class="op">=</span> <span class="va">None</span>):</span>
+<span id="cb12-89"><a href="#cb12-89" aria-hidden="true" tabindex="-1"></a>    d_k <span class="op">=</span> query.shape[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb12-90"><a href="#cb12-90" aria-hidden="true" tabindex="-1"></a>    attention_scores <span class="op">=</span> (query <span class="op">@</span> key.transpose(<span class="op">-</span><span class="dv">2</span>, <span class="op">-</span><span class="dv">1</span>)) <span class="op">/</span> math.sqrt(d_k)</span>
+<span id="cb12-91"><a href="#cb12-91" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> mask <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
+<span id="cb12-92"><a href="#cb12-92" aria-hidden="true" tabindex="-1"></a>        attention_scores.masked_fill_(mask <span class="op">==</span> <span class="dv">0</span>, <span class="op">-</span><span class="fl">1e9</span>)</span>
+<span id="cb12-93"><a href="#cb12-93" aria-hidden="true" tabindex="-1"></a>    attention_scores <span class="op">=</span> attention_scores.softmax(dim<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb12-94"><a href="#cb12-94" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> dropout <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
+<span id="cb12-95"><a href="#cb12-95" aria-hidden="true" tabindex="-1"></a>        attention_scores <span class="op">=</span> dropout(attention_scores)</span>
+<span id="cb12-96"><a href="#cb12-96" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (attention_scores <span class="op">@</span> value), attention_scores</span>
+<span id="cb12-97"><a href="#cb12-97" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-98"><a href="#cb12-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-99"><a href="#cb12-99" aria-hidden="true" tabindex="-1"></a>**Why divide by √d_k?** Assume query and key components are independent random variables with mean 0 and variance 1. The dot product q·k = Σ(q_i × k_i) over d_k terms has variance that grows linearly with d_k (variance of a sum of independent terms is the sum of variances, and each term q_i·k_i has variance 1 under these assumptions). So the raw dot product has variance ≈ d_k, meaning its typical magnitude grows with √d_k. Large-magnitude inputs to softmax push it into saturated regions where the gradient is near zero almost everywhere except at the max — the softmax becomes nearly a hard argmax and gradients vanish for all the non-selected positions. Dividing by √d_k renormalizes the dot product back to unit variance regardless of d_k, keeping softmax in a well-conditioned regime.</span>
+<span id="cb12-100"><a href="#cb12-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-101"><a href="#cb12-101" aria-hidden="true" tabindex="-1"></a>**Masking**: <span class="in">`masked_fill_(mask == 0, -1e9)`</span> happens *before* softmax, not after. Setting scores to a large negative number (rather than zero) ensures that after softmax, those positions get a weight of essentially exp(-1e9) ≈ 0 — masking after softmax would just leave the wrong probabilities in place and require manual renormalization.</span>
+<span id="cb12-102"><a href="#cb12-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-103"><a href="#cb12-103" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.2 Multi-Head Attention</span></span>
+<span id="cb12-104"><a href="#cb12-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-105"><a href="#cb12-105" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb12-106"><a href="#cb12-106" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MultiHeadAttentionBlock(nn.Module):</span>
+<span id="cb12-107"><a href="#cb12-107" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, d_model: <span class="bu">int</span>, h: <span class="bu">int</span>, dropout: <span class="bu">float</span>):</span>
+<span id="cb12-108"><a href="#cb12-108" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb12-109"><a href="#cb12-109" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.d_model <span class="op">=</span> d_model</span>
+<span id="cb12-110"><a href="#cb12-110" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.h <span class="op">=</span> h</span>
+<span id="cb12-111"><a href="#cb12-111" aria-hidden="true" tabindex="-1"></a>        <span class="cf">assert</span> d_model <span class="op">%</span> h <span class="op">==</span> <span class="dv">0</span>, <span class="st">"d_model must be divisible by h"</span></span>
+<span id="cb12-112"><a href="#cb12-112" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.d_k <span class="op">=</span> d_model <span class="op">//</span> h</span>
+<span id="cb12-113"><a href="#cb12-113" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.w_q <span class="op">=</span> nn.Linear(d_model, d_model, bias<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb12-114"><a href="#cb12-114" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.w_k <span class="op">=</span> nn.Linear(d_model, d_model, bias<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb12-115"><a href="#cb12-115" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.w_v <span class="op">=</span> nn.Linear(d_model, d_model, bias<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb12-116"><a href="#cb12-116" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.w_o <span class="op">=</span> nn.Linear(d_model, d_model, bias<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb12-117"><a href="#cb12-117" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropout <span class="op">=</span> nn.Dropout(dropout)</span>
+<span id="cb12-118"><a href="#cb12-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-119"><a href="#cb12-119" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, q, k, v, mask):</span>
+<span id="cb12-120"><a href="#cb12-120" aria-hidden="true" tabindex="-1"></a>        query <span class="op">=</span> <span class="va">self</span>.w_q(q)</span>
+<span id="cb12-121"><a href="#cb12-121" aria-hidden="true" tabindex="-1"></a>        key <span class="op">=</span> <span class="va">self</span>.w_k(k)</span>
+<span id="cb12-122"><a href="#cb12-122" aria-hidden="true" tabindex="-1"></a>        value <span class="op">=</span> <span class="va">self</span>.w_v(v)</span>
+<span id="cb12-123"><a href="#cb12-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-124"><a href="#cb12-124" aria-hidden="true" tabindex="-1"></a>        <span class="co"># (batch, seq_len, d_model) -&gt; (batch, h, seq_len, d_k)</span></span>
+<span id="cb12-125"><a href="#cb12-125" aria-hidden="true" tabindex="-1"></a>        query <span class="op">=</span> query.view(query.shape[<span class="dv">0</span>], query.shape[<span class="dv">1</span>], <span class="va">self</span>.h, <span class="va">self</span>.d_k).transpose(<span class="dv">1</span>, <span class="dv">2</span>)</span>
+<span id="cb12-126"><a href="#cb12-126" aria-hidden="true" tabindex="-1"></a>        key <span class="op">=</span> key.view(key.shape[<span class="dv">0</span>], key.shape[<span class="dv">1</span>], <span class="va">self</span>.h, <span class="va">self</span>.d_k).transpose(<span class="dv">1</span>, <span class="dv">2</span>)</span>
+<span id="cb12-127"><a href="#cb12-127" aria-hidden="true" tabindex="-1"></a>        value <span class="op">=</span> value.view(value.shape[<span class="dv">0</span>], value.shape[<span class="dv">1</span>], <span class="va">self</span>.h, <span class="va">self</span>.d_k).transpose(<span class="dv">1</span>, <span class="dv">2</span>)</span>
+<span id="cb12-128"><a href="#cb12-128" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-129"><a href="#cb12-129" aria-hidden="true" tabindex="-1"></a>        x, <span class="va">self</span>.attention_scores <span class="op">=</span> attention(query, key, value, mask, <span class="va">self</span>.dropout)</span>
+<span id="cb12-130"><a href="#cb12-130" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-131"><a href="#cb12-131" aria-hidden="true" tabindex="-1"></a>        <span class="co"># (batch, h, seq_len, d_k) -&gt; (batch, seq_len, d_model)</span></span>
+<span id="cb12-132"><a href="#cb12-132" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> x.transpose(<span class="dv">1</span>, <span class="dv">2</span>).contiguous().view(x.shape[<span class="dv">0</span>], <span class="op">-</span><span class="dv">1</span>, <span class="va">self</span>.h <span class="op">*</span> <span class="va">self</span>.d_k)</span>
+<span id="cb12-133"><a href="#cb12-133" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.w_o(x)</span>
+<span id="cb12-134"><a href="#cb12-134" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-135"><a href="#cb12-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-136"><a href="#cb12-136" aria-hidden="true" tabindex="-1"></a>The key implementation gotcha here is the reshape sequence. Projecting to <span class="in">`d_model`</span> and then *viewing* it as <span class="in">`(h, d_k)`</span> — rather than running h separate smaller linear layers — is mathematically equivalent but dramatically more efficient: it's one big matmul instead of h small ones, which matters a lot for GPU utilization. The <span class="in">`.contiguous()`</span> call before the final <span class="in">`.view()`</span> is not optional — <span class="in">`.transpose()`</span> returns a view with non-contiguous memory layout, and <span class="in">`.view()`</span> requires contiguous memory, so skipping this raises a runtime error (or silently wrong behavior if you use <span class="in">`.reshape()`</span> instead, which will implicitly copy).</span>
+<span id="cb12-137"><a href="#cb12-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-138"><a href="#cb12-138" aria-hidden="true" tabindex="-1"></a>Why multiple heads at all, rather than one d_model-dimensional attention? Splitting into h heads of dimension d_k = d_model/h lets each head learn to attend using a different projection subspace — empirically, different heads specialize (some track short-range syntactic relations, others longer-range or positional patterns). A single full-size attention head, by contrast, is forced to average all such patterns into one attention distribution per query.</span>
+<span id="cb12-139"><a href="#cb12-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-140"><a href="#cb12-140" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb12-141"><a href="#cb12-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-142"><a href="#cb12-142" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. Position-wise Feed-Forward Network</span></span>
+<span id="cb12-143"><a href="#cb12-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-144"><a href="#cb12-144" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb12-145"><a href="#cb12-145" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FeedForwardBlock(nn.Module):</span>
+<span id="cb12-146"><a href="#cb12-146" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, d_model: <span class="bu">int</span>, d_ff: <span class="bu">int</span>, dropout: <span class="bu">float</span>):</span>
+<span id="cb12-147"><a href="#cb12-147" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb12-148"><a href="#cb12-148" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.linear_1 <span class="op">=</span> nn.Linear(d_model, d_ff)</span>
+<span id="cb12-149"><a href="#cb12-149" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropout <span class="op">=</span> nn.Dropout(dropout)</span>
+<span id="cb12-150"><a href="#cb12-150" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.linear_2 <span class="op">=</span> nn.Linear(d_ff, d_model)</span>
+<span id="cb12-151"><a href="#cb12-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-152"><a href="#cb12-152" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
+<span id="cb12-153"><a href="#cb12-153" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.linear_2(<span class="va">self</span>.dropout(torch.relu(<span class="va">self</span>.linear_1(x))))</span>
+<span id="cb12-154"><a href="#cb12-154" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-155"><a href="#cb12-155" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-156"><a href="#cb12-156" aria-hidden="true" tabindex="-1"></a>This block is applied identically and independently to every position — there's no mixing across the sequence dimension here (that's entirely attention's job). d_ff is typically 4× d_model (2048 vs 512 in the base config); the expand-then-contract shape gives the model extra capacity to transform each token's representation nonlinearly, in between the sequence-mixing steps that attention provides.</span>
+<span id="cb12-157"><a href="#cb12-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-158"><a href="#cb12-158" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb12-159"><a href="#cb12-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-160"><a href="#cb12-160" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Residual Connections &amp; Normalization</span></span>
+<span id="cb12-161"><a href="#cb12-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-162"><a href="#cb12-162" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb12-163"><a href="#cb12-163" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ResidualConnection(nn.Module):</span>
+<span id="cb12-164"><a href="#cb12-164" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, dropout: <span class="bu">float</span>):</span>
+<span id="cb12-165"><a href="#cb12-165" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb12-166"><a href="#cb12-166" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropout <span class="op">=</span> nn.Dropout(dropout)</span>
+<span id="cb12-167"><a href="#cb12-167" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.norm <span class="op">=</span> LayerNormalization()</span>
+<span id="cb12-168"><a href="#cb12-168" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-169"><a href="#cb12-169" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x, sublayer):</span>
+<span id="cb12-170"><a href="#cb12-170" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> x <span class="op">+</span> <span class="va">self</span>.dropout(sublayer(<span class="va">self</span>.norm(x)))  <span class="co"># Pre-LN</span></span>
+<span id="cb12-171"><a href="#cb12-171" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Post-LN alternative: return self.norm(x + self.dropout(sublayer(x)))</span></span>
+<span id="cb12-172"><a href="#cb12-172" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-173"><a href="#cb12-173" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-174"><a href="#cb12-174" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.1 Post-LN vs Pre-LN</span></span>
+<span id="cb12-175"><a href="#cb12-175" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-176"><a href="#cb12-176" aria-hidden="true" tabindex="-1"></a>The original paper uses **Post-LN**: <span class="in">`LayerNorm(x + Sublayer(x))`</span>. Normalization is applied *after* the residual addition, on the combined output.</span>
+<span id="cb12-177"><a href="#cb12-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-178"><a href="#cb12-178" aria-hidden="true" tabindex="-1"></a>**Pre-LN** instead normalizes the input to the sublayer, and adds the raw (unnormalized) sublayer output to the residual stream: <span class="in">`x + Sublayer(LayerNorm(x))`</span>.</span>
+<span id="cb12-179"><a href="#cb12-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-180"><a href="#cb12-180" aria-hidden="true" tabindex="-1"></a>The practical difference is about gradient flow through depth. In Post-LN, every residual addition is immediately followed by a normalization that rescales the combined signal — this means the identity path (the raw residual <span class="in">`x`</span>) gets its scale altered at every single layer, and gradients backpropagating through N stacked layers pass through N layer-norm rescalings, each of which can shrink or distort gradient magnitude. This is why the original Transformer needed a *careful learning-rate warmup* — without it, Post-LN training is prone to divergence or requires very conservative LR at the start, because early in training the layer norm statistics themselves are still stabilizing.</span>
+<span id="cb12-181"><a href="#cb12-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-182"><a href="#cb12-182" aria-hidden="true" tabindex="-1"></a>In Pre-LN, the residual stream itself is never renormalized — <span class="in">`x`</span> passes through unchanged at every layer, and only the *input* to each sublayer is normalized. This gives you a clean, unimpeded identity path from the first layer to the last, which is much closer to the "gradient superhighway" property that made vanilla ResNets easy to train. Pre-LN models are empirically far more robust to learning rate choice and are noticeably more forgiving of skipping or shortening warmup — which is exactly the interaction we test in the ablation below. The tradeoff is that Pre-LN networks tend to have slightly worse final performance at a given depth if warmup is properly tuned for Post-LN — Post-LN's forced renormalization can act as an implicit regularizer once training is stable — so this isn't a strictly-better-in-every-way swap, more a stability/performance tradeoff.</span>
+<span id="cb12-183"><a href="#cb12-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-184"><a href="#cb12-184" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.2 Dropout Placement</span></span>
+<span id="cb12-185"><a href="#cb12-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-186"><a href="#cb12-186" aria-hidden="true" tabindex="-1"></a>Dropout in this implementation is applied in three distinct places, each for a different reason:</span>
+<span id="cb12-187"><a href="#cb12-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-188"><a href="#cb12-188" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**After adding positional encoding to embeddings** — regularizes the input representation itself.</span>
+<span id="cb12-189"><a href="#cb12-189" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**On attention weights**, inside the <span class="in">`attention()`</span> function, after softmax — randomly zeroes out some attention connections, discouraging the model from over-relying on any single key for a given query.</span>
+<span id="cb12-190"><a href="#cb12-190" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**On each sublayer's output**, before it's added back to the residual stream — regularizes the *update* to the residual stream rather than the stream itself, which is important: dropout is never applied directly to the residual path <span class="in">`x`</span>, only to what's being added to it. Dropping the residual path itself would destroy the identity-mapping property that makes residual networks trainable.</span>
+<span id="cb12-191"><a href="#cb12-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-192"><a href="#cb12-192" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb12-193"><a href="#cb12-193" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-194"><a href="#cb12-194" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Encoder &amp; Decoder Stack Assembly</span></span>
+<span id="cb12-195"><a href="#cb12-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-196"><a href="#cb12-196" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb12-197"><a href="#cb12-197" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> EncoderBlock(nn.Module):</span>
+<span id="cb12-198"><a href="#cb12-198" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, self_attention_block, feed_forward_block, dropout: <span class="bu">float</span>):</span>
+<span id="cb12-199"><a href="#cb12-199" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb12-200"><a href="#cb12-200" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.self_attention_block <span class="op">=</span> self_attention_block</span>
+<span id="cb12-201"><a href="#cb12-201" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.feed_forward_block <span class="op">=</span> feed_forward_block</span>
+<span id="cb12-202"><a href="#cb12-202" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.residual_connections <span class="op">=</span> nn.ModuleList([ResidualConnection(dropout) <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>)])</span>
+<span id="cb12-203"><a href="#cb12-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-204"><a href="#cb12-204" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x, src_mask):</span>
+<span id="cb12-205"><a href="#cb12-205" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> <span class="va">self</span>.residual_connections[<span class="dv">0</span>](x, <span class="kw">lambda</span> x: <span class="va">self</span>.self_attention_block(x, x, x, src_mask))</span>
+<span id="cb12-206"><a href="#cb12-206" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> <span class="va">self</span>.residual_connections[<span class="dv">1</span>](x, <span class="va">self</span>.feed_forward_block)</span>
+<span id="cb12-207"><a href="#cb12-207" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> x</span>
+<span id="cb12-208"><a href="#cb12-208" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-209"><a href="#cb12-209" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-210"><a href="#cb12-210" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> DecoderBlock(nn.Module):</span>
+<span id="cb12-211"><a href="#cb12-211" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, self_attention_block, cross_attention_block, feed_forward_block, dropout: <span class="bu">float</span>):</span>
+<span id="cb12-212"><a href="#cb12-212" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb12-213"><a href="#cb12-213" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.self_attention_block <span class="op">=</span> self_attention_block</span>
+<span id="cb12-214"><a href="#cb12-214" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.cross_attention_block <span class="op">=</span> cross_attention_block</span>
+<span id="cb12-215"><a href="#cb12-215" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.feed_forward_block <span class="op">=</span> feed_forward_block</span>
+<span id="cb12-216"><a href="#cb12-216" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.residual_connections <span class="op">=</span> nn.ModuleList([ResidualConnection(dropout) <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>)])</span>
+<span id="cb12-217"><a href="#cb12-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-218"><a href="#cb12-218" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x, encoder_output, src_mask, tgt_mask):</span>
+<span id="cb12-219"><a href="#cb12-219" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> <span class="va">self</span>.residual_connections[<span class="dv">0</span>](x, <span class="kw">lambda</span> x: <span class="va">self</span>.self_attention_block(x, x, x, tgt_mask))</span>
+<span id="cb12-220"><a href="#cb12-220" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> <span class="va">self</span>.residual_connections[<span class="dv">1</span>](x, <span class="kw">lambda</span> x: <span class="va">self</span>.cross_attention_block(x, encoder_output, encoder_output, src_mask))</span>
+<span id="cb12-221"><a href="#cb12-221" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> <span class="va">self</span>.residual_connections[<span class="dv">2</span>](x, <span class="va">self</span>.feed_forward_block)</span>
+<span id="cb12-222"><a href="#cb12-222" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> x</span>
+<span id="cb12-223"><a href="#cb12-223" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-224"><a href="#cb12-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-225"><a href="#cb12-225" aria-hidden="true" tabindex="-1"></a>Note the decoder's cross-attention call: <span class="in">`query = x`</span> (decoder's own state) but <span class="in">`key = value = encoder_output`</span>. This is exactly where the encoder's representation of the source sequence gets injected into the decoder — the decoder is asking "given what I've generated so far, which parts of the source sequence are relevant right now," and the *mask* used here is the <span class="in">`src_mask`</span> (padding mask on the source), not the causal mask — causality only applies to the decoder's self-attention over its own generated tokens.</span>
+<span id="cb12-226"><a href="#cb12-226" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-227"><a href="#cb12-227" aria-hidden="true" tabindex="-1"></a>Both encoder and decoder stacks apply a final LayerNorm after the last block, since with Pre-LN the residual stream is otherwise unnormalized all the way through — without this final norm, the output fed to the projection layer would have unbounded/unnormalized scale.</span>
+<span id="cb12-228"><a href="#cb12-228" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-229"><a href="#cb12-229" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb12-230"><a href="#cb12-230" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-231"><a href="#cb12-231" aria-hidden="true" tabindex="-1"></a><span class="fu">## 8. Training Setup</span></span>
+<span id="cb12-232"><a href="#cb12-232" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-233"><a href="#cb12-233" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.1 Label Smoothing</span></span>
+<span id="cb12-234"><a href="#cb12-234" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-235"><a href="#cb12-235" aria-hidden="true" tabindex="-1"></a>Rather than training with a hard one-hot target distribution, label smoothing spreads a small amount of probability mass (typically ε=0.1) across the non-target vocabulary:</span>
+<span id="cb12-236"><a href="#cb12-236" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-237"><a href="#cb12-237" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-238"><a href="#cb12-238" aria-hidden="true" tabindex="-1"></a><span class="in">target_distribution[correct_token] = 1 - ε</span></span>
+<span id="cb12-239"><a href="#cb12-239" aria-hidden="true" tabindex="-1"></a><span class="in">target_distribution[other_tokens] = ε / (vocab_size - 1)</span></span>
+<span id="cb12-240"><a href="#cb12-240" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-241"><a href="#cb12-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-242"><a href="#cb12-242" aria-hidden="true" tabindex="-1"></a>This discourages the model from becoming *overconfident* — pushing logits to extreme values to drive the softmax output arbitrarily close to 1.0 for the correct token. Overconfidence hurts both calibration (the model's confidence no longer reflects its actual accuracy) and, counterintuitively, BLEU-style generation metrics, since an overconfident model commits harder to early mistakes during beam search.</span>
+<span id="cb12-243"><a href="#cb12-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-244"><a href="#cb12-244" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.2 Learning Rate Schedule (Noam Schedule)</span></span>
+<span id="cb12-245"><a href="#cb12-245" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-246"><a href="#cb12-246" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb12-247"><a href="#cb12-247" aria-hidden="true" tabindex="-1"></a>lr <span class="op">=</span> d_model <span class="op">**</span> (<span class="op">-</span><span class="fl">0.5</span>) <span class="op">*</span> <span class="bu">min</span>(step_num <span class="op">**</span> (<span class="op">-</span><span class="fl">0.5</span>), step_num <span class="op">*</span> warmup_steps <span class="op">**</span> (<span class="op">-</span><span class="fl">1.5</span>))</span>
+<span id="cb12-248"><a href="#cb12-248" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-249"><a href="#cb12-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-250"><a href="#cb12-250" aria-hidden="true" tabindex="-1"></a>This increases LR linearly for the first <span class="in">`warmup_steps`</span>, then decays proportionally to the inverse square root of the step number. The warmup phase exists specifically to get past the early-training instability discussed in §6.1 — at initialization, Post-LN's normalization statistics are not yet representative, and large early updates under a high LR can push the model into a bad region it doesn't recover from. Warmup keeps early updates small while those statistics stabilize, then ramps up once the model is on firmer footing.</span>
+<span id="cb12-251"><a href="#cb12-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-252"><a href="#cb12-252" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.3 Loss Masking</span></span>
+<span id="cb12-253"><a href="#cb12-253" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-254"><a href="#cb12-254" aria-hidden="true" tabindex="-1"></a>Padding tokens in the target sequence must be excluded from the loss — otherwise the model is rewarded for correctly predicting <span class="in">`&lt;pad&gt;`</span> after <span class="in">`&lt;pad&gt;`</span>, which is a trivial, meaningless pattern that would dilute the actual training signal:</span>
+<span id="cb12-255"><a href="#cb12-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-256"><a href="#cb12-256" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb12-257"><a href="#cb12-257" aria-hidden="true" tabindex="-1"></a>loss_fn <span class="op">=</span> nn.CrossEntropyLoss(ignore_index<span class="op">=</span>pad_token_id, label_smoothing<span class="op">=</span><span class="fl">0.1</span>)</span>
+<span id="cb12-258"><a href="#cb12-258" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb12-259"><a href="#cb12-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-260"><a href="#cb12-260" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb12-261"><a href="#cb12-261" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-262"><a href="#cb12-262" aria-hidden="true" tabindex="-1"></a><span class="fu">## 9. Ablation Study: Pre-LN vs Post-LN × Flat LR vs Warmup+Decay</span></span>
+<span id="cb12-263"><a href="#cb12-263" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-264"><a href="#cb12-264" aria-hidden="true" tabindex="-1"></a>The claim in §6.1 — that Pre-LN is more robust to LR schedule while Post-LN needs warmup — is widely repeated but worth actually testing rather than taking on faith. Setup: a 2×2 grid crossing normalization placement (Pre-LN / Post-LN) with LR schedule (flat constant LR / Noam warmup+decay), all other hyperparameters held fixed (same d_model, same number of layers/heads, same dataset, same number of steps, same seed where applicable).</span>
+<span id="cb12-265"><a href="#cb12-265" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-266"><a href="#cb12-266" aria-hidden="true" tabindex="-1"></a>**Metrics tracked per cell:**</span>
+<span id="cb12-267"><a href="#cb12-267" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Training loss curve (smoothed)</span>
+<span id="cb12-268"><a href="#cb12-268" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Gradient norm over time (particularly in the first few hundred steps)</span>
+<span id="cb12-269"><a href="#cb12-269" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Whether training diverges (loss → NaN/Inf) or plateaus early</span>
+<span id="cb12-270"><a href="#cb12-270" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-271"><a href="#cb12-271" aria-hidden="true" tabindex="-1"></a>**Expected/observed pattern:**</span>
+<span id="cb12-272"><a href="#cb12-272" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-273"><a href="#cb12-273" aria-hidden="true" tabindex="-1"></a>| | Flat LR | Warmup + Decay |</span>
+<span id="cb12-274"><a href="#cb12-274" aria-hidden="true" tabindex="-1"></a>|---|---|---|</span>
+<span id="cb12-275"><a href="#cb12-275" aria-hidden="true" tabindex="-1"></a>| **Post-LN** | Unstable early, high risk of divergence or requires very low flat LR to survive, which then undertrains | Stable, matches paper's reported behavior |</span>
+<span id="cb12-276"><a href="#cb12-276" aria-hidden="true" tabindex="-1"></a>| **Pre-LN** | Stable, converges reasonably even without warmup | Stable, often marginally smoother early loss curve than flat LR, but the gap to flat-LR Pre-LN is much smaller than the corresponding gap for Post-LN |</span>
+<span id="cb12-277"><a href="#cb12-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-278"><a href="#cb12-278" aria-hidden="true" tabindex="-1"></a>The interesting result isn't just "warmup helps" — it's the *interaction*: warmup's benefit is much larger under Post-LN than under Pre-LN. That's the direct empirical signature of the mechanism described in §6.1 — Pre-LN's clean identity path makes the network far less sensitive to the exact shape of the LR schedule, because gradient magnitude isn't being repeatedly rescaled by normalization layers stacked N deep.</span>
+<span id="cb12-279"><a href="#cb12-279" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-280"><a href="#cb12-280" aria-hidden="true" tabindex="-1"></a>*[Insert your actual loss curves and gradient norm plots here from the four runs.]*</span>
+<span id="cb12-281"><a href="#cb12-281" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-282"><a href="#cb12-282" aria-hidden="true" tabindex="-1"></a>**Takeaway**: if you're building on Pre-LN (which most modern LLMs are, including GPT-2 onward), you have more slack on LR schedule design — a reasonable warmup still helps a bit, but you're not walking a tightrope the way the original Post-LN paper effectively was. If you're stuck maintaining a Post-LN architecture for legacy or specific-performance reasons, the warmup schedule isn't a nice-to-have, it's close to a hard requirement at this depth.</span>
+<span id="cb12-283"><a href="#cb12-283" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-284"><a href="#cb12-284" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb12-285"><a href="#cb12-285" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-286"><a href="#cb12-286" aria-hidden="true" tabindex="-1"></a><span class="fu">## 10. Common Implementation Pitfalls</span></span>
+<span id="cb12-287"><a href="#cb12-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-288"><a href="#cb12-288" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Forgetting the √d_model embedding scale** — model still trains, but positional encoding dominates early representations, causing slower convergence.</span>
+<span id="cb12-289"><a href="#cb12-289" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Mask shape mismatches** — attention masks need to broadcast correctly against <span class="in">`(batch, h, seq_len, seq_len)`</span> attention score tensors; a mask shaped for a single head silently broadcasts wrong if you're not careful with <span class="in">`unsqueeze`</span>.</span>
+<span id="cb12-290"><a href="#cb12-290" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Off-by-one in decoder input/target shift** — the decoder input at training time is the target sequence shifted right by one (prepended with <span class="in">`&lt;sos&gt;`</span>), and the loss target is the *unshifted* sequence. Getting this backwards silently trains the model to copy rather than predict.</span>
+<span id="cb12-291"><a href="#cb12-291" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Using `.view()` after `.transpose()` without `.contiguous()`** — covered in §4.2, raises a runtime error (or worse, silently wrong output with <span class="in">`.reshape()`</span>).</span>
+<span id="cb12-292"><a href="#cb12-292" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Inconsistent dropout between train/eval** — forgetting <span class="in">`model.eval()`</span> before validation/inference leaves dropout active, adding noise to what should be deterministic generation.</span>
+<span id="cb12-293"><a href="#cb12-293" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Masking after softmax instead of before** — leaves incorrect nonzero probability mass on masked positions unless you manually renormalize; masking with a large negative number before softmax handles this for free.</span>
+<span id="cb12-294"><a href="#cb12-294" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-295"><a href="#cb12-295" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb12-296"><a href="#cb12-296" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-297"><a href="#cb12-297" aria-hidden="true" tabindex="-1"></a><span class="fu">## 11. Results &amp; Sanity Checks</span></span>
+<span id="cb12-298"><a href="#cb12-298" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-299"><a href="#cb12-299" aria-hidden="true" tabindex="-1"></a>*[This section is a placeholder for your run: include a training/validation loss curve, a handful of sample translations or generations at increasing checkpoints, and 1-2 attention heatmaps — ideally one showing a head that's learned something interpretable, like aligning source and target tokens in cross-attention.]*</span>
+<span id="cb12-300"><a href="#cb12-300" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-301"><a href="#cb12-301" aria-hidden="true" tabindex="-1"></a>A useful sanity check before trusting any of the ablation results above: verify that a single attention head's weights sum to 1 across the key dimension for every query position (post-softmax, pre-dropout), and verify that masked positions are receiving effectively zero attention weight, not just small weight. Both are easy to get subtly wrong and easy to silently ship if you don't check.</span>
+<span id="cb12-302"><a href="#cb12-302" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-303"><a href="#cb12-303" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb12-304"><a href="#cb12-304" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-305"><a href="#cb12-305" aria-hidden="true" tabindex="-1"></a><span class="fu">## 12. Conclusion &amp; Next Steps</span></span>
+<span id="cb12-306"><a href="#cb12-306" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-307"><a href="#cb12-307" aria-hidden="true" tabindex="-1"></a>Building this from scratch makes the paper's design choices legible in a way that using <span class="in">`nn.Transformer`</span> doesn't — the √d_model scaling, the specific dropout placement, the Post-LN/warmup coupling, are all things you can read past in the paper but that become obvious the moment you have to get the shapes and gradients right yourself.</span>
+<span id="cb12-308"><a href="#cb12-308" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-309"><a href="#cb12-309" aria-hidden="true" tabindex="-1"></a>This is groundwork for the next few posts in this series: KV caching (which changes how self-attention is computed at inference time once you're autoregressively decoding one token at a time), TurboQuant-style quantization, and then a shift toward flow-matching-based generative models — DiT architectures and F5-TTS specifically — where a lot of these same attention and normalization design questions resurface in a very different setting.</span>
+<span id="cb12-310"><a href="#cb12-310" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-311"><a href="#cb12-311" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb12-312"><a href="#cb12-312" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-313"><a href="#cb12-313" aria-hidden="true" tabindex="-1"></a>*Code for the full implementation and the four ablation runs is available in [link to your repo].*</span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
