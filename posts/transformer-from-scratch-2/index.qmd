@@ -2,6 +2,8 @@
 title: "Building the Transformer From Scratch: An Implementation Log [Part-2]"
 subtitle: "Continuing where we left off in Part-1, with a focus on residual connections, layer normalization, and the training loop."
 date: 2026-07-02
+author: "Namita"
+image: "../transformer-from-scratch/transformer_pipeline_overview.svg"
 categories: [transformers, pytorch, deep-learning, from-scratch, nlp]
 format:
   html:

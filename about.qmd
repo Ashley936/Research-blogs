@@ -1,5 +1,5 @@
 ---
-title: "About"
+title: "About Me"
 image: profile.jpg
 about:
   template: jolla
@@ -13,4 +13,4 @@ about:
 
 ---
 
-About this blog
+An AI/ML enthusiast, currently working as an AI Engineer. I am passionate about deep learning, natural language processing, LLMs, and anything and everything in between. I enjoy exploring new research papers, implementing models from scratch, and sharing my knowledge through blog posts and tutorials.

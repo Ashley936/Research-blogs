@@ -4,7 +4,8 @@ project:
 
 website:
   title: "Caffeine and chaos"
-  description: "A diary to store my notes, questions, project status and experiment findings."
+  description: "A collection of my notes, questions and experiment logs."
+  favicon: favicon.svg
   navbar:
     left:
       - href: index.qmd
@@ -15,10 +16,12 @@ website:
         href: https://github.com/Ashley936
       - icon: linkedin
         href: https://www.linkedin.com/in/namita-rastogi-453224201/
-
+contents:
+  - path: posts/
+    drafts: false
 format:
   html:
-    theme: cosmo # or "darkly", "flatly" — pick one and stick with it
+    theme: flatly
     css: styles.css
     toc: true
     code-fold: false # keep code visible by default for an ML audience

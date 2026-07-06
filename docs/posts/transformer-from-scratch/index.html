@@ -6,6 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="Namita">
 <meta name="dcterms.date" content="2026-07-02">
 
 <title>Building the Transformer From Scratch: An Implementation Log – Caffeine and chaos</title>
@@ -73,7 +74,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-de84f8d6bb715db06a919283c2d1e787.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-e4ba3d78b00e01791fd7f00b840fd105.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-cbc99e20dce857c13dc09aad941d17ba.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -198,6 +199,12 @@ window.Quarto = {
   
   <div class="quarto-title-meta">
 
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Namita </p>
+            </div>
+    </div>
       
       <div>
       <div class="quarto-title-meta-heading">Published</div>
@@ -928,145 +935,147 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Building the Transformer From Scratch: An Implementation Log"</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> "Re-implementing 'Attention Is All You Need' end-to-end in PyTorch and documenting my learnings in the process"</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> 2026-07-02</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [transformers, pytorch, deep-learning, from-scratch, nlp]</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-depth: 3</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">    code-fold: false</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">    code-tools: true</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">    number-sections: false</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="an">draft:</span><span class="co"> false  </span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="fu">## Why Rebuild the Transformer From Scratch?</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span><span class="co"> "Namita"</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> "transformer_pipeline_overview.svg"</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [transformers, pytorch, deep-learning, from-scratch, nlp]</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-depth: 3</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">    code-fold: false</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">    code-tools: true</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">    number-sections: false</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="an">draft:</span><span class="co"> false  </span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
 <span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>There's no shortage of transformer tutorials floating around. It's the most basic deep learning architecture in NLP today, so why bother building one from scratch again?</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="fu">## Why Rebuild the Transformer From Scratch?</span></span>
 <span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>Because it's exactly that: the basic building block for almost every architecture running today. I spend my actual working hours around fast-conformer models and diffusion models, but actually building this basic transformer with my own hands (and several 2am debugging sessions) turned out to be very different and suprisingly very insightful. Enough that I decided I had to write a log about it.</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>There's no shortage of transformer tutorials floating around. It's the most basic deep learning architecture in NLP today, so why bother building one from scratch again?</span>
 <span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>So here's that log. I built an encoder-decoder transformer straight from the original paper, trained it on <span class="in">`opus_books`</span> for English to Italian translation, and kept a running list of every question that had me pausing mid-line wondering what the authors were thinking.</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>Because it's exactly that: the basic building block for almost every architecture running today. I spend my actual working hours around fast-conformer models and diffusion models, but actually building this basic transformer with my own hands (and several 2am debugging sessions) turned out to be very different and suprisingly very insightful. Enough that I decided I had to write a log about it.</span>
 <span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>The source lives in four files: <span class="in">`model.py`</span> for the architecture, <span class="in">`dataset.py`</span> for the data pipeline, <span class="in">`config.py`</span> for the hyperparameters, and <span class="in">`train.py`</span> for the training loop. <span class="co">[</span><span class="ot">code link</span><span class="co">](https://github.com/Ashley936/Transformers_expt/tree/main/Transformers)</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>So here's that log. I built an encoder-decoder transformer straight from the original paper, trained it on <span class="in">`opus_books`</span> for English to Italian translation, and kept a running list of every question that had me pausing mid-line wondering what the authors were thinking.</span>
 <span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="fu">## Architecture at a Glance</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>The source lives in four files: <span class="in">`model.py`</span> for the architecture, <span class="in">`dataset.py`</span> for the data pipeline, <span class="in">`config.py`</span> for the hyperparameters, and <span class="in">`train.py`</span> for the training loop. <span class="co">[</span><span class="ot">code link</span><span class="co">](https://github.com/Ashley936/Transformers_expt/tree/main/Transformers)</span></span>
 <span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>Six encoder blocks feed a stack of six decoder blocks through cross-attention, exactly as in the 2017 paper. <span class="in">`d_model = 512`</span>, <span class="in">`h = 8`</span> heads, <span class="in">`d_ff = 2048`</span>, <span class="in">`max_seq_len = 350`</span>, <span class="in">`dropout = 0.1`</span>.</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="fu">## Architecture at a Glance</span></span>
 <span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="al">![Transformer Pipeline Overview](transformer_pipeline_overview.svg)</span>{height="400px"}</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>Six encoder blocks feed a stack of six decoder blocks through cross-attention, exactly as in the 2017 paper. <span class="in">`d_model = 512`</span>, <span class="in">`h = 8`</span> heads, <span class="in">`d_ff = 2048`</span>, <span class="in">`max_seq_len = 350`</span>, <span class="in">`dropout = 0.1`</span>.</span>
 <span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>::: {layout-ncol=2 layout-valign="bottom"}</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="al">![Encoder Block](encoder_block_internals.svg)</span>{width="1600px"}</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="al">![Decoder Block](decoder_block_internals.svg)</span>{width="1600px"}</span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Text Embeddings: Turning Tokens Into Vectors</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="al">![Transformer Pipeline Overview](transformer_pipeline_overview.svg)</span>{height="400px"}</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>::: {layout-ncol=2 layout-valign="bottom"}</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="al">![Encoder Block](encoder_block_internals.svg)</span>{width="1600px"}</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a><span class="al">![Decoder Block](decoder_block_internals.svg)</span>{width="1600px"}</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>Let $W_E \in \mathbb{R}^{V \times d_{model}}$ be the learnable embedding weight matrix.  </span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>The text embedding formula for a given token at position $pos$ with vocabulary index $k$ is:</span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>$$E_{pos} = W_E<span class="co">[</span><span class="ot">k</span><span class="co">]</span> \cdot \sqrt{d_{model}}$$</span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="in">`nn.Embedding`</span> is just a lookup table: <span class="in">`[vocab_size, d_model]`</span>, initialized randomly and learned during training. During forward pass :- <span class="in">`[batch, seq_len]`</span> -&gt; <span class="in">`[batch, seq_len, d_model]`</span> </span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Text Embeddings: Turning Tokens Into Vectors</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>Let $W_E \in \mathbb{R}^{V \times d_{model}}$ be the learnable embedding weight matrix.  </span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>The text embedding formula for a given token at position $pos$ with vocabulary index $k$ is:</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>$$E_{pos} = W_E<span class="co">[</span><span class="ot">k</span><span class="co">]</span> \cdot \sqrt{d_{model}}$$</span>
 <span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>::: {.callout-tip title="Q1: Why multiply by √d_model?"}</span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>The positional encodings (next section) have values bounded in <span class="in">`[-1, 1]`</span>. Raw embeddings, especially right after Xavier init, sit at a much smaller scale.  </span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a><span class="in">`√d_model`</span> scale-up the text embeddings that becomes comparable to the **additive positional signal** early in training.</span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. Positional Encoding: Giving the Model a Sense of Order</span></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a><span class="in">`nn.Embedding`</span> is just a lookup table: <span class="in">`[vocab_size, d_model]`</span>, initialized randomly and learned during training. During forward pass :- <span class="in">`[batch, seq_len]`</span> -&gt; <span class="in">`[batch, seq_len, d_model]`</span> </span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>::: {.callout-tip title="Q1: Why multiply by √d_model?"}</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>The positional encodings (next section) have values bounded in <span class="in">`[-1, 1]`</span>. Raw embeddings, especially right after Xavier init, sit at a much smaller scale.  </span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="in">`√d_model`</span> scale-up the text embeddings that becomes comparable to the **additive positional signal** early in training.</span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>Formulas:-  </span>
-<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>For even dimensions ($2i$):</span>
-<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>$$PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{\frac{2i}{d_{model}}}}\right)$$</span>
-<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>For odd dimensions ($2i + 1$):</span>
-<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>$$PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{\frac{2i}{d_{model}}}}\right)$$</span>
-<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>$i$ is a specific feature dimension (where $i$ goes from $0$ to $d_{model}/2$)</span>
-<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>::: {.callout-note title="Positional Encoding: Use of sin and cos"}</span>
-<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>The maths behind chosing sin and cos, it's pros and cons and recent advancements in positional encoding is discussed in my other blog: <span class="co">[</span><span class="ot">link: to be done</span><span class="co">]</span></span>
-<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>Two implementation details:</span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. Positional Encoding: Giving the Model a Sense of Order</span></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>Formulas:-  </span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>For even dimensions ($2i$):</span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>$$PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{\frac{2i}{d_{model}}}}\right)$$</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>For odd dimensions ($2i + 1$):</span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>$$PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{\frac{2i}{d_{model}}}}\right)$$</span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>$i$ is a specific feature dimension (where $i$ goes from $0$ to $d_{model}/2$)</span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a>::: {.callout-note title="Positional Encoding: Use of sin and cos"}</span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>The maths behind chosing sin and cos, it's pros and cons and recent advancements in positional encoding is discussed in my other blog: <span class="co">[</span><span class="ot">link: to be done</span><span class="co">]</span></span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**`register_buffer`, not `nn.Parameter`:** Registering in buffer allows the deterministic embeddings that never gets trained to be moved with the model across <span class="in">`.to(device)`</span> calls and be saved/restored in <span class="in">`state_dict()`</span>. </span>
-<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The <span class="in">`e^(ln(A)B)`</span> trick: ** <span class="in">`10000^(-2i/d_model)`</span> is computed as <span class="in">`exp(-2i/d_model * ln(10000))`</span> because <span class="in">`torch.pow`</span> on a fractional, negative exponent across a whole tensor is less numerically stable than composing <span class="in">`exp`</span> and <span class="in">`log`</span>, which PyTorch has fast, stable kernels for.</span>
-<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>$$X_{final} = \text{Dropout}\Big( E_{pos} + PE_{pos} \Big)$$</span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a>Two implementation details:</span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**`register_buffer`, not `nn.Parameter`:** Registering in buffer allows the deterministic embeddings that never gets trained to be moved with the model across <span class="in">`.to(device)`</span> calls and be saved/restored in <span class="in">`state_dict()`</span>. </span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The <span class="in">`e^(ln(A)B)`</span> trick: ** <span class="in">`10000^(-2i/d_model)`</span> is computed as <span class="in">`exp(-2i/d_model * ln(10000))`</span> because <span class="in">`torch.pow`</span> on a fractional, negative exponent across a whole tensor is less numerically stable than composing <span class="in">`exp`</span> and <span class="in">`log`</span>, which PyTorch has fast, stable kernels for.</span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a>::: {.callout-note title="Knowledge point :- Use of dropout across the Transformer paper"}</span>
-<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a>The information in the original paper is a bit scattered, so here's a summary of where dropout is applied:</span>
-<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Link</span><span class="co">](../transformer-from-scratch-2/#honourable-mentions-dropout-layers-they-are-everywhere)</span></span>
-<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. LayerNorm From Scratch</span></span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a>$$X_{final} = \text{Dropout}\Big( E_{pos} + PE_{pos} \Big)$$</span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a>::: {.callout-note title="Knowledge point :- Use of dropout across the Transformer paper"}</span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>The information in the original paper is a bit scattered, so here's a summary of where dropout is applied:</span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Link</span><span class="co">](../transformer-from-scratch-2/#honourable-mentions-dropout-layers-they-are-everywhere)</span></span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>::: {.callout-tip title="Q2: What is the use of Normalization?"}</span>
-<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a>As data moves non-linear activations and weight multiplications leads to **Internal Covariate Shift**.  </span>
-<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The variance of the activations grows too large -&gt; the **gradients explode**</span>
-<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>It shrinks too much -&gt; the **gradients vanish**  </span>
-<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a>Normalization solves this by forcing the activations back to a standard scale (typically a mean of 0 and a variance of 1) at every layer. The general mathematical formula for normalization is:</span>
-<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a>$$y = \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} \cdot \gamma + \beta$$</span>
-<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a>::: {.callout-tip title="Q3: Why LayerNorm and why not BatchNorm?"}</span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. LayerNorm From Scratch</span></span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a>::: {.callout-tip title="Q2: What is the use of Normalization?"}</span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a>As data moves non-linear activations and weight multiplications leads to **Internal Covariate Shift**.  </span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The variance of the activations grows too large -&gt; the **gradients explode**</span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>It shrinks too much -&gt; the **gradients vanish**  </span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a>Normalization solves this by forcing the activations back to a standard scale (typically a mean of 0 and a variance of 1) at every layer. The general mathematical formula for normalization is:</span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a>$$y = \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} \cdot \gamma + \beta$$</span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a>**BatchNorm** normalizes across **batch** dimension and assumes batch statistics are stable and representative. Two things break that assumption here:</span>
+<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a>::: {.callout-tip title="Q3: Why LayerNorm and why not BatchNorm?"}</span>
 <span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Variable sequence lengths + padding: ** Batch statistics get polluted by padding tokens that are used to fill sequences to the same length.</span>
-<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Batch size of 1 at inference:** BatchNorm's statistics are undefined (or at best a single noisy sample) at batch size 1.</span>
-<span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a>LayerNorm is better here because it normalizes across the *feature* dimension (<span class="in">`d_model`</span>) independently per token, so it behaves identically whether the batch is 1 sentence or 64.</span>
-<span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. Multi-Head Attention</span></span>
+<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a>**BatchNorm** normalizes across **batch** dimension and assumes batch statistics are stable and representative. Two things break that assumption here:</span>
+<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Variable sequence lengths + padding: ** Batch statistics get polluted by padding tokens that are used to fill sequences to the same length.</span>
+<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Batch size of 1 at inference:** BatchNorm's statistics are undefined (or at best a single noisy sample) at batch size 1.</span>
+<span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a>LayerNorm is better here because it normalizes across the *feature* dimension (<span class="in">`d_model`</span>) independently per token, so it behaves identically whether the batch is 1 sentence or 64.</span>
+<span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a>$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) V$$</span>
+<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. Multi-Head Attention</span></span>
 <span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span><span class="in">`q`</span>, <span class="in">`k`</span>, <span class="in">`v`</span> start as <span class="in">`[batch, seq_len, d_model]`</span>.  </span>
-<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Then first it is converted to <span class="in">`[batch, seq_len, h, d_k]`</span> (<span class="in">`d_k = d_model/h`</span>)  </span>
-<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>And then transposed to<span class="in">`[batch, h, seq_len, d_k]`</span>  </span>
-<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a>    **WHY????** **-&gt; Allows each head to take info from all the seq tokens**</span>
-<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>After attention, <span class="in">`.transpose(1, 2).contiguous().view(...)`</span> merges the heads back. </span>
-<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a><span class="in">`.contiguous()`</span> is required here because <span class="in">`.transpose`</span> returns a view with non-contiguous memory, and <span class="in">`.view()`</span> refuses to operate on that.</span>
-<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a>::: {.callout-important title="Q4: Why divide by √d_k? What happens if you don't?"}</span>
-<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a>Assume the components of <span class="in">`q`</span> and <span class="in">`k`</span> are roughly independent with mean 0 and variance 1 (a reasonable approximation right after Xavier/careful init). The dot product <span class="in">`q·k`</span> sums <span class="in">`d_k`</span> such independent products, so its variance grows to <span class="in">`Var(q·k) ≈ d_k`</span> - the standard deviation grows as <span class="in">`√d_k`</span>.</span>
-<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a>And when passed through softmax, it is exponentiated and output collapse towards one-hot. (ex output: <span class="in">`[0.999, 0.001, 0.000]`</span>)</span>
-<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a>The gradient of softmax with respect to its logits is roughly <span class="in">`p(1-p)`</span>, which is **near zero** for entries pinned near 0 or 1. So your gradients completely die. Your model just sits there, learning nothing.</span>
-<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a>Dividing by <span class="in">`√d_k`</span> renormalizes the dot product back to unit variance regardless of <span class="in">`d_k`</span> and prevents gradient collapse.</span>
-<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. The FeedForward Block</span></span>
+<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a>$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) V$$</span>
+<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span><span class="in">`q`</span>, <span class="in">`k`</span>, <span class="in">`v`</span> start as <span class="in">`[batch, seq_len, d_model]`</span>.  </span>
+<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Then first it is converted to <span class="in">`[batch, seq_len, h, d_k]`</span> (<span class="in">`d_k = d_model/h`</span>)  </span>
+<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>And then transposed to<span class="in">`[batch, h, seq_len, d_k]`</span>  </span>
+<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a>    **WHY????** **-&gt; Allows each head to take info from all the seq tokens**</span>
+<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>After attention, <span class="in">`.transpose(1, 2).contiguous().view(...)`</span> merges the heads back. </span>
+<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a><span class="in">`.contiguous()`</span> is required here because <span class="in">`.transpose`</span> returns a view with non-contiguous memory, and <span class="in">`.view()`</span> refuses to operate on that.</span>
+<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a>::: {.callout-important title="Q4: Why divide by √d_k? What happens if you don't?"}</span>
+<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a>Assume the components of <span class="in">`q`</span> and <span class="in">`k`</span> are roughly independent with mean 0 and variance 1 (a reasonable approximation right after Xavier/careful init). The dot product <span class="in">`q·k`</span> sums <span class="in">`d_k`</span> such independent products, so its variance grows to <span class="in">`Var(q·k) ≈ d_k`</span> - the standard deviation grows as <span class="in">`√d_k`</span>.</span>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a>And when passed through softmax, it is exponentiated and output collapse towards one-hot. (ex output: <span class="in">`[0.999, 0.001, 0.000]`</span>)</span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a>The gradient of softmax with respect to its logits is roughly <span class="in">`p(1-p)`</span>, which is **near zero** for entries pinned near 0 or 1. So your gradients completely die. Your model just sits there, learning nothing.</span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a>Dividing by <span class="in">`√d_k`</span> renormalizes the dot product back to unit variance regardless of <span class="in">`d_k`</span> and prevents gradient collapse.</span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a>Two linear transformations with a ReLU activation in between. (512 -&gt; 2048 -&gt; RELU -&gt; 512)</span>
-<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a><span class="in">`FFN(x) = max(0, W·x + b1)W2 + b2`</span></span>
-<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a>This block is applied pointwise.  </span>
-<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a>Each token, in isolation, does its own nonlinear processing on what it just gathered.</span>
-<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a>::: {.callout-tip title="Q5: Why is there dropout inside the FFN in modern approaches?"}</span>
-<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a>The dropout *inside* the FFN, between <span class="in">`linear_1`</span> and <span class="in">`linear_2`</span>, is a modern addition.</span>
-<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a>Why it matters: <span class="in">`d_ff`</span> is 4× <span class="in">`d_model`</span>. Here, neurons can co-adapt (learn to always fire together to reproduce memorized patterns). A dropout is applied in the residual connection but it only acts on the *compressed* final output and can't see or break up that internal co-adaptation. Internal FFN dropout regularizes the expanded space directly.</span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. The FeedForward Block</span></span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a>Two linear transformations with a ReLU activation in between. (512 -&gt; 2048 -&gt; RELU -&gt; 512)</span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a><span class="in">`FFN(x) = max(0, W·x + b1)W2 + b2`</span></span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a>This block is applied pointwise.  </span>
+<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a>Each token, in isolation, does its own nonlinear processing on what it just gathered.</span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a>::: {.callout-tip title="Q5: Why is there dropout inside the FFN in modern approaches?"}</span>
+<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a>The dropout *inside* the FFN, between <span class="in">`linear_1`</span> and <span class="in">`linear_2`</span>, is a modern addition.</span>
 <span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a>| Scenario | Internal FFN dropout needed? |</span>
-<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a>|---|---|</span>
-<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a>| Small model, small <span class="in">`d_ff`</span> | Not much, residual dropout is enough |</span>
-<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a>| Large model, large <span class="in">`d_ff`</span> | Yes, co-adaptation risk grows with size |</span>
-<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a>| Fine-tuning on small datasets | Yes, overfitting risk is real |</span>
-<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>| Large-scale pretraining | Often removed, data volume is the regularizer |</span>
-<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a>Why it matters: <span class="in">`d_ff`</span> is 4× <span class="in">`d_model`</span>. Here, neurons can co-adapt (learn to always fire together to reproduce memorized patterns). A dropout is applied in the residual connection but it only acts on the *compressed* final output and can't see or break up that internal co-adaptation. Internal FFN dropout regularizes the expanded space directly.</span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a>| Scenario | Internal FFN dropout needed? |</span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a>|---|---|</span>
+<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a>| Small model, small <span class="in">`d_ff`</span> | Not much, residual dropout is enough |</span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>| Large model, large <span class="in">`d_ff`</span> | Yes, co-adaptation risk grows with size |</span>
+<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a>| Fine-tuning on small datasets | Yes, overfitting risk is real |</span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a>| Large-scale pretraining | Often removed, data volume is the regularizer |</span>
+<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a>Pheww !! That was a lot. But it's not over yet. Here is the next post that starts form Residual connections (The real magic of the transformers) and goes on to explain the design choices, introduce masking and then moves onto different training nuances. <span class="co">[</span><span class="ot">link</span><span class="co">](../transformer-from-scratch-2/index.qmd)</span></span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a>Pheww !! That was a lot. But it's not over yet. Here is the next post that starts form Residual connections (The real magic of the transformers) and goes on to explain the design choices, introduce masking and then moves onto different training nuances. <span class="co">[</span><span class="ot">link</span><span class="co">](../transformer-from-scratch-2/index.qmd)</span></span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 

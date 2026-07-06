@@ -26,10 +26,10 @@ The identity term `I` is a direct gradient highway: a copy of the output gradien
 Loss
  │
  ├─────────────────────── Identity highway ──────────────────────────┐
- │                                                                    │
+ │                                                                   │
 [Sub·LN Jacobian] → [Sub·LN Jacobian] → ... → [Sub·LN Jacobian]      │
-                                                                      │
-                                                        Early weights ←┘
+                                                                     │
+                                                      Early weights ←┘
 ```
 
 ### Why this makes Post-LN learning-rate-sensitive

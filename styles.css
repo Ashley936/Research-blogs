@@ -1,1 +1,10 @@
 /* css styles */
+.callout-tip {
+  border-left-color: #2ecc71;
+}
+.callout-important {
+  border-left-color: #e74c3c;
+}
+.callout-note {
+  border-left-color: #3498db;
+}

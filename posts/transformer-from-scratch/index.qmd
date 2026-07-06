@@ -2,6 +2,8 @@
 title: "Building the Transformer From Scratch: An Implementation Log"
 subtitle: "Re-implementing 'Attention Is All You Need' end-to-end in PyTorch and documenting my learnings in the process"
 date: 2026-07-02
+author: "Namita"
+image: "transformer_pipeline_overview.svg"
 categories: [transformers, pytorch, deep-learning, from-scratch, nlp]
 format:
   html:
@@ -104,7 +106,7 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right
 2. Then first it is converted to `[batch, seq_len, h, d_k]` (`d_k = d_model/h`)  
 3. And then transposed to`[batch, h, seq_len, d_k]`  
     **WHY????** **-> Allows each head to take info from all the seq tokens**
-3. After attention, `.transpose(1, 2).contiguous().view(...)` merges the heads back. 
+4. After attention, `.transpose(1, 2).contiguous().view(...)` merges the heads back. 
 `.contiguous()` is required here because `.transpose` returns a view with non-contiguous memory, and `.view()` refuses to operate on that.
 
 ::: {.callout-important title="Q4: Why divide by √d_k? What happens if you don't?"}
