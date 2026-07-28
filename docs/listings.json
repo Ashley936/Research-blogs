@@ -2,6 +2,10 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/quantization/04-tinyml-on-microcontrollers.html",
+      "/posts/quantization/03-quantization.html",
+      "/posts/quantization/02-pruning-and-sparsity.html",
+      "/posts/quantization/01-primitives-and-metrics.html",
       "/posts/transformer-from-scratch-2/index.html",
       "/posts/transformer-from-scratch/index.html"
     ]

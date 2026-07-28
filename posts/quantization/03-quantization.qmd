@@ -1,0 +1,197 @@
+---
+title: "Efficient ML, Part 3: Quantization"
+subtitle: "Notes from MIT 6.5940, quantization lectures"
+author: "Namita"
+date: 2026-07-27
+categories: [efficient-ml, tinyml, quantization]
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    html-math-method: katex
+---
+
+Pruning needs hardware support to pay off, distillation needs a teacher, but dropping FP32 to INT8 gives you a 4x smaller model on hardware that already exists. That's the best part about quantization.
+
+First the basics:
+
+## Number formats
+
+**Integers.** Unsigned covers $0$ to $2^n - 1$. Signed magnitude covers $-(2^{n-1} - 1)$ to $2^{n-1} - 1$, and nobody uses it, because it burns a bit on the sign and gives you two representations of zero. **Two's complement** covers $-2^{n-1}$ to $2^{n-1} - 1$ and wastes nothing.
+
+**Fixed point.** A sign bit, then an integer field, then a fraction field. The binary point sits at a position you choose once and never move.
+
+**Floating point.** A sign bit, an exponent field, and a fraction field:
+
+$$(-1)^{\text{sign}} \times 2^{\text{exp} - 127} \times (1 + \text{fraction})$$
+
+FP32 gives 1 bit of sign, 8 of exponent, 23 of fraction. The 127 is the **exponent bias**, present so a single unsigned 8-bit field can express both positive and negative exponents.
+
+When the exponent field is all zeros you are in **subnormal** territory, and the implicit leading 1 disappears:
+
+$$(-1)^{\text{sign}} \times \text{fraction} \times 2^{1 - 127}$$
+
+::: {.callout-important}
+## Exponent buys range, fraction buys precision
+This one sentence explains the entire FP16 versus BF16 argument.
+
+| Format | Sign | Exponent | Fraction |
+|---|---|---|---|
+| FP32 | 1 | 8 | 23 |
+| FP16 | 1 | 5 | 10 |
+| BF16 | 1 | 8 | 7 |
+
+BF16 keeps FP32's exponent width and throws away fraction bits. It trades FP16's extra precision for a wider dynamic range. That is exactly the trade you want in training, where gradients underflow FP16's narrow range but nobody needs 23 bits of mantissa.
+:::
+
+## K-means quantization
+
+Cluster the weights, store the centroids in a **codebook**, and replace each weight with its cluster index. A codebook of length $n$ means $n$ clusters. The weights become integers; the codebook stays floating point; the activations stay floating point.
+
+Do the arithmetic. With $M$ parameters and $N$-bit indices, where $M \gg 2^N$:
+
+- FP32 storage: $32M$ bits
+- K-means storage: $NM$ bits, plus $32 \cdot 2^N$ bits of codebook, which is negligible
+
+So you shrink by $32/N$.
+
+Fine-tuning the centroids is neat. Compute the gradients as usual, group them by cluster, average within each group, and subtract that average from the corresponding centroid. This prevents from training millions of weights.
+
+How many bits do you need? The empirical answer from Deep Compression: **4 bits for convolutional weights, 2 bits for fully connected layers**. FC layers are more redundant.
+
+You can squeeze further with **Huffman coding**: fewer bits for weights that occur often, more for the rare ones.
+
+::: {.callout-caution}
+## What K-means quantization does not give you
+It saves only storage not compute. At inference you decompress the weights through a lookup table, filling in the centroid for each cluster index, and then you do exactly the same floating point computation as before. It is used when weights are the bottleneck and compute is not, which describes a lot of LLM serving. Ex: Llama 7B
+:::
+
+## Linear quantization
+
+This is the one that changes the arithmetic. Weights become integers and so do activations, which means the multiply-accumulate itself runs on integer hardware.
+
+The affine mapping between a real value $r$ and its quantized integer $q$:
+
+$$r = S(q - Z)$$
+
+$$S = \frac{r_{\max} - r_{\min}}{q_{\max} - q_{\min}}, \qquad Z = \text{round}\left(q_{\min} - \frac{r_{\min}}{S}\right)$$
+
+$S$ is the scale and $Z$ is the zero point.
+
+If we write $y$, $x$ and $W$ in terms of $q$ and $Z$: **$q_y$ can be computed using only linear matrix multiplication in $q_x$ and $q_W$, with no floating point operations required.** That gives us integer-only inference.
+
+::: {.callout-note}
+## Two implementation details that matter
+The rescaling factor that appears in the derivation is floating point, which would spoil the whole exercise. TFLite avoids it by approximating the multiplication and division as $2^{-n}$, which is a bit shift.
+
+And the accumulation is done in a 32-bit accumulator. You quantize to 8 bits, but the sum of many 8-bit products needs headroom, so the running sum lives in INT32 and gets requantized at the end.
+:::
+
+## Granularity
+
+The coarser your scale, the fewer scale factors to store and the worse the fit to the actual distribution. Per-tensor is cheapest, per-channel is standard, per-group is finer still.
+
+**Group quantization** uses one scale per small group of elements within a channel.
+
+**Multi-level scaling** is the idea unifying VSQuant and MX:
+
+$$r = (q - Z) \cdot S_{l_0} \cdot S_{l_1}$$
+
+- $S_{l_0}$ is fine level, covering a small group, and is cheap and low precision
+- $S_{l_1}$ is coarse level, covering a large group, and is expensive and high precision
+
+**VS-Quant** is the two-level version: a per-channel float scale $\gamma$ multiplied by a per-vector integer scale.
+
+$$r = \gamma \, S_q (q - Z)$$
+
+Count the bits. Four-bit weights, plus a 4-bit scale shared across 16 elements, gives $4 + 4/16 = 4.25$ bits per weight.
+
+**MX (shared microexponent)** data types push the same idea further. MX4 is S1M2, meaning 1 sign bit and 2 mantissa bits. Then every 2 elements share one E1M0, and every 16 elements share one E8M0.
+
+$$3 + \tfrac{1}{2} + \tfrac{8}{16} = 4 \text{ bits per element}$$
+
+## Finding the clipping range for activations
+
+Weights you can inspect directly. Activations you cannot, because they depend on the input. So you have to estimate the dynamic range, and there are two moments to do it.
+
+**During training.** Track an exponential moving average of the min and max, updating after each batch's forward pass. The smoothing matters; you do not want one outlier batch setting your range forever.
+
+**After training.** Run a calibration dataset through the model and take the mean of the observed min and max. Or be smarter about it.
+
+### The KL divergence method
+
+The dilemma:
+
+- Clip too aggressively and you lose information at the tails, producing large quantization errors on outliers.
+- Clip too loosely and you waste your quantization steps on a range that is mostly empty.
+
+KL divergence, also called relative entropy or information divergence, measures the information lost when you approximate one distribution with another:
+
+$$D_{KL}(P \| Q) = \sum_i^N P(x_i) \log \frac{P(x_i)}{Q(x_i)}$$
+
+So choose the clipping threshold that minimizes the KL divergence between the original FP32 distribution and the resulting INT8 distribution. This is what TensorRT does.
+
+An alternative is to minimize MSE directly, solving with Newton-Raphson. The **OCTAV** method finds these optimal scalars on the fly, which improves quantization-aware training.
+
+### Clipping inside QAT
+
+1. **EMA**, as above: update the global min and max by exponential moving average after each batch.
+2. **PACT (learnable clipping)**: make the clipping threshold a parameter and let backpropagation find it.
+
+## AdaRound
+
+The problem with Round-to-nearest: RTN introduces error in a consistent direction. Sometimes rounding 2.6 *down* to 2 lets the error cancel against errors elsewhere and produces a better final output than rounding it up to 3.
+
+So we make the rounding decision learnable:
+
+$$w_q = s \cdot \left( \lfloor \tilde{w} \rfloor + V \right), \qquad V = h(v) = \text{sigmoid}(v)$$
+
+$V$ should end up at 0 or 1, but a sigmoid gives you a continuous value in between, which is what makes it differentiable. The loss:
+
+$$L = \arg\min \|Wx - W_q(v)x\|_F^2 + \lambda f_{\text{reg}}(v)$$
+
+The first term compares the FP32 layer output against the output using quantized weights. The regularization term pushes the sigmoid towards a hard 0 or 1 so you end up with an actual rounding decision.
+
+::: {.callout-note}
+## Scope of AdaRound
+It applies to weights only, and it is a post-training quantization technique. Note that calibration data is now doing double duty: AdaRound uses it for the weights, and range estimation uses it for the activations.
+:::
+
+## Quantization-aware training
+
+PTQ eventually runs out of room, usually below 8 bits. Then you train with quantization in the loop.
+
+Forward pass through layer $N$:
+
+```
+W -> Q(W) ---|
+             v
+Q(X) ---> [ Layer N ] ---> y ---> Q(y) ---> to layer N+1
+```
+
+The awkward part is the backward pass, because $Q(\cdot)$ has zero gradient almost everywhere and is undefined at the step edges. The **straight-through estimator** simply pretends the quantizer is the identity function:
+
+$$g_y = \frac{\partial L}{\partial Q(y)} \approx \frac{\partial L}{\partial y}$$
+
+and likewise through $Q(W)$:
+
+$$g_W = g_y \cdot \frac{\partial y}{\partial Q(W)}$$
+
+The update is applied to the **full precision** weights, not the quantized ones:
+
+$$\hat{W} = W - \gamma \, g_W$$
+
+::: {.callout-tip collapse="true"}
+## Why keep full precision weights around during QAT?
+Because the quantized weights sit on a coarse grid. A gradient step small enough to be useful would round straight back to the same grid point and nothing would ever change. Keeping a shadow copy in FP32 lets many small updates accumulate until the weight genuinely crosses to the next quantization level.
+:::
+
+## The extreme end
+
+**Binarization** maps weights to $\{-1, +1\}$. **Ternarization** adds zero, giving $\{-1, 0, +1\}$. Either way, multiply the whole matrix by a single scale to reduce the error, and the standard choice of scale is the mean absolute value of the original weights.
+
+Binarization comes in two flavours: deterministic, where the sign decides, and stochastic, where the value determines a probability of mapping to $+1$.
+
+**Mixed precision quantization** takes the sane middle road: use different bit widths for different layers, roughly 1 to 8 bits, and search the assignment with reinforcement learning. Not every layer is equally sensitive, and treating them uniformly leaves accuracy on the table.
+
+Next in this series: [what all this looks like on a microcontroller](04-tinyml-on-microcontrollers.qmd).

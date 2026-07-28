@@ -1,0 +1,120 @@
+---
+title: "Efficient ML, Part 4: TinyML on Microcontrollers"
+subtitle: "Notes from MIT 6.5940"
+author: "Namita"
+date: 2026-07-28
+categories: [efficient-ml, tinyml, systems, mcu]
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    html-math-method: katex
+---
+
+Everything in the previous three posts was general. This one is about the actually deploying the model on the hardest deployment target: a microcontroller.
+
+## The budget
+
+| Resource | Where it lives | How much |
+|---|---|---|
+| Weights | Flash / DRAM | under 1 MB |
+| Activations | SRAM | around 360 KB |
+
+Compared against an H100 at roughly 1,979 TOPS, or a flagship phone at roughly 36 TOPS. A TinyML engine works with a few hundred kilobytes of memory and a compute budget in the hundreds of millions of operations per second.
+
+::: {.callout-important}
+## Compute is cheap, memory is expensive
+On a microcontroller the binding constraint is memory, not arithmetic. Which flips the usual optimization target: instead of minimizing FLOPs, you **maximize FLOPs subject to a memory constraint**, because more computation within the same memory footprint means larger model capacity, which usually means better accuracy.
+
+This is also why MobileNetV2's inverted bottleneck, which was a win on phones, becomes a liability here. Expanding the channel count before the depthwise convolution raises the peak activation size, and peak activation size is exactly what SRAM caps.
+:::
+
+### How the two memories trade against each other
+
+The activation tensor occupies roughly $\text{Res} \times \text{Res} \times \text{Ch}$ in SRAM, while the weights occupy flash. So:
+
+**Flash fixed, SRAM increased.** Channel count stays put, resolution goes up. You can afford to hold larger activations.
+
+**Flash increased, SRAM fixed.** Channel count and width multiplier go up, and resolution has to come *down* to compensate, because the SRAM product must stay constant.
+
+Buying more storage for weights does not let you process bigger images. It lets you process smaller images with a wider network.
+
+## Patch-based inference
+
+The peak activation problem usually lives in the first few layers, where resolution is highest. Patch-based inference compute the network patch by patch rather than layer by layer, so only one patch's activations need to be resident.
+
+The cost is repeated computation, because neighbouring patches have overlapping receptive fields and the overlap gets computed twice. Roughly 10% overhead.
+
+The fix is **network redistribution**: reduce the receptive field in the starting layers, where patches overlap, and increase it in the ending layers to compensate. You are moving the receptive field to where it does not cost you.
+
+Push that further and you get **MCUNetV2**, which searches the neural architecture and the inference schedule jointly rather than fixing one and optimizing the other.
+
+What actually runs on these devices:
+
+| Task | Approach |
+|---|---|
+| Face detection and small vision tasks | MCUNet |
+| Small keyword detection in speech | CNN based, MCUNet |
+| Anomaly detection | Autoencoders |
+
+## Instruction-level parallelism
+
+An **ISA** (instruction set architecture) is the vocabulary the processor understands: ADD, COMPARE, JUMP, JUMP IF, and so on. Two philosophies:
+
+**CISC**, as in Intel, where one instruction does a lot:
+
+```
+add a, b, c
+```
+
+**RISC**, as in Arm, where each instruction does one thing:
+
+```
+load  a, reg1
+load  b, reg2
+add   reg1, reg2 -> reg3
+store reg3, c
+```
+
+**SIMD** (single instruction, multiple data) applies one instruction to several data elements at once. A single add can operate on four 32-bit blocks simultaneously. It needs vector registers and vector operations in the ISA, and it buys throughput, speed, and energy efficiency at once, since you amortize one instruction fetch and decode over many operands.
+
+## Thread-level parallelism
+
+Threads share code, data, and files, but each gets its own registers and stack. For a matrix multiply the natural split is by rows: give each thread a slice. Use pthreads or OpenMP.
+
+## Inference optimizations
+
+### 1. Image to column (im2col)
+
+Rearrange the input patches into columns so the convolution becomes a single matrix multiplication:
+
+$$\underbrace{[HW \times K^2C]}_{\text{rearranged input}} \times \underbrace{[K^2C \times N]}_{\text{kernels}} = \underbrace{[HW \times N]}_{\text{output}}$$
+
+where $N$ is the number of kernels.
+
+The advantage is that you get to use a GEMM routine, and GEMM is the most heavily optimized function in computing. The disadvantage is extra memory, since every input element gets replicated into multiple columns. On a microcontroller that memory does not exist, so the fix is to build the columns on the fly and multiply as you go instead of materializing the whole matrix.
+
+### 2. In-place depthwise convolution
+
+Depthwise convolution touches one channel at a time, so with channel-wise computation you can write the output back over the input and avoid holding both. Use NCHW layout for this, since it keeps each channel contiguous.
+
+### 3. Layout per operation
+
+NHWC for pointwise convolution, NCHW for depthwise convolution. Pointwise convolution walks across channels at a fixed spatial location, so NHWC makes that access sequential.
+
+::: {.callout-tip collapse="true"}
+## Why does layout choice matter so much here?
+There is no large cache to rescue a bad access pattern. An L1 cache on these devices is on the order of 8 KB. On a server you can write cache-hostile code and lose maybe 2x. Here the memory system is the entire performance story, so matching the layout to the loop order is not a micro-optimization, it is the optimization.
+:::
+
+### 4. Winograd convolution
+
+A fast convolution algorithm that trades multiplications for additions. Worth reading separately.
+
+## Where this post ends up
+
+As I went through this series of lectures I learned about handling constraints, realized that bigger models may not be the future in applications and there might not exist a perfect solution. Almost every technique I learned is a trade between how much you compute and how predictably you can move data.   
+Depthwise convolution wins on FLOPs and loses on arithmetic intensity. Unstructured pruning wins on parameter count and loses on regularity. Patch-based inference accepts 10% redundant computation to fit in SRAM. TorchSparse pads a sparse tensor back towards density for the same reason.
+
+Counting operations and metrices is the easy part. Knowing when the count is lying and how they relate is the job.  
+

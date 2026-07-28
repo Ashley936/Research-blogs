@@ -1,0 +1,145 @@
+---
+title: "Efficient ML, Part 1: The Primitives and the Metrics"
+subtitle: "Notes from MIT 6.5940"
+author: "Namita"
+date: 2026-07-27
+categories: [efficient-ml, tinyml, cnn]
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    html-math-method: katex
+---
+
+Hardware compute roughly doubles based on the Moore's Law. Deep learning's appetite has been growing several times faster. That gap is the entire reason this field exists, and everything below is a consequence of it.
+
+The target hardware in this course is the edge: Nvidia Jetson AGX at the top end, microcontrollers at the bottom.
+
+## Vocabulary used throughout
+
+- **weights** = parameters
+- **neurons** = features = activations
+
+Trade-offs in Neural Network design:
+
+| Wide and shallow | Narrow and deep |
+|---|---|
+| Fewer kernel launches | Better accuracy |
+
+## Basic building blocks of CNNs
+
+### The four layer shapes
+
+| Layer | Input | Weight | Output |
+|---|---|---|---|
+| Linear | $(n, C_i)$ | $(C_o, C_i)$, bias $(C_o)$ | $(n, C_o)$ |
+| Conv | $[B, C_i, H, W]$ | $[C_o, C_i, k_h, k_w]$ | $[B, C_o, H_o, W_o]$ |
+| Grouped conv | $[B, C_i, H, W]$ | $[C_o, C_i/g, k_h, k_w]$ | $[B, C_o, H_o, W_o]$ |
+| Depthwise conv | $[B, C_i, H, W]$ | $[C_o, 1, k_h, k_w]$ | $[B, C_o, H_o, W_o]$ |
+
+Depthwise is just grouped conv taken to its limit: $g = C_i = C_o$, so each kernel sees exactly one input channel.
+
+Padding mostly used: zero, reflection (like mirror), and replication (replicate the last digit).
+
+## Receptive field
+
+Stack $L$ layers of $K \times K$ convolution at stride 1 and the receptive field is
+
+$$R_L = L \cdot (K - 1) + 1$$
+
+::: {.callout-tip}
+## Growing the receptive field on a budget
+Notice that stacking layers grows the receptive field *linearly* in $L$, and every layer you add costs parameters and latency. 
+
+**Stride and dilation** both widen the receptive field without adding either. So we can see more context without a bigger model.
+:::
+
+## Depthwise convolution, and why more FLOPs does not mean faster inference
+
+Depthwise convolutions have more wall-clock time. The reason is **arithmetic intensity**: operations performed per byte moved. Each depthwise weight gets used once per spatial position and then discarded, so there is almost no reuse and the layer sits **memory bound**. 
+
+There is a second problem. A depthwise layer is thin in the information sense, because each output channel only ever looks at one input channel.
+
+MobileNetV2 fixes both with the **inverted bottleneck**:
+
+```
+input (C channels)
+  -> 1x1 conv        (expand to C x t channels)
+  -> depthwise conv
+  -> 1x1 conv        (project down to C_out)
+```
+
+The expansion ratio $t$ is 6 in MobileNetV2.
+
+::: {.callout-note}
+## Why "inverted"
+A classical bottleneck squeezes and then expands. This one expands and then squeezes, which is the reverse, hence the name. The expand step has to write more data to memory and the project step has to read more, so in practice the three are fused into a single kernel.
+:::
+
+## Normalization and activations
+
+Normalize to mean 0, variance 1:
+
+$$\hat{x}_i = \frac{x_i - \mu_i}{\sigma_i}$$
+
+Batch norm computes statistics per channel. Layer norm computes them across the channel dimension.
+
+| Activation | Definition |
+|---|---|
+| Sigmoid | $1 / (1 + e^{-x})$ |
+| ReLU | $\max(0, x)$ |
+| ReLU6 | $\min(\max(0, x), 6)$ |
+| Leaky ReLU | $\max(ax, x)$ |
+| Swish | $x / (1 + e^{-x})$ |
+| Hard swish | $x \cdot \text{ReLU6}(x + 3) / 6$ |
+
+::: {.callout-important}
+## ReLU6 and hard swish are not arbitrary
+Both exist because of quantization. ReLU6 bounds the activation range, which makes the range easy to represent in fixed point. Hard swish replaces a sigmoid with clamped arithmetic, so there is no transcendental function to approximate on an integer unit. 
+:::
+
+## What "efficient" actually means
+
+Split the metrics into two families.
+
+**Memory related:** number of parameters, model size, peak number of activations.
+
+**Computation related:** MACs, FLOPs, OPs.
+
+Then two timing notions that people confuse:- **Latency** is the delay for one specific task. **Throughput** is the rate at which data gets processed. Parallelism buys you throughput; it does not necessarily buy you latency.
+
+A useful first-order model:
+
+$$\text{Latency} \approx \max(T_{\text{computation}}, T_{\text{memory}})$$
+
+where
+
+$$T_{\text{computation}} = \frac{\text{number of ops}}{\text{ops per second the processor can do}}$$
+
+$$T_{\text{memory}} = \underbrace{\frac{\text{model size}}{\text{memory bandwidth}}}_{\text{moving weights}} + \underbrace{\frac{\text{input} + \text{output activations}}{\text{memory bandwidth}}}_{\text{moving activations}}$$
+
+::: {.callout-important}
+## The line most people get backwards
+On IoT and microcontroller inference, the memory bottleneck is the **peak activation count**, not the parameter count. Early layers carry large activations because the spatial resolution is high. Later layers carry large weights because the channel count is high. If you only ever look at parameter counts, you will optimize the wrong half of the network.
+:::
+
+## MAC arithmetic
+
+A multiply-accumulate is $a \leftarrow a \cdot b + c$.
+
+- Matrix-vector product: $m \cdot n$ MACs
+- General matrix-matrix product (GEMM): $m \cdot n \cdot k$ MACs
+
+Per layer:
+
+| Layer | MACs |
+|---|---|
+| Linear | $C_o \cdot C_i$ |
+| Conv | $C_i \cdot k_h \cdot k_w \cdot h_o \cdot w_o \cdot C_o$ |
+| Grouped conv | $(C_i / g) \cdot k_h \cdot k_w \cdot h_o \cdot w_o \cdot C_o$ |
+| Depthwise conv | $k_h \cdot k_w \cdot h_o \cdot w_o \cdot C_o$ |
+
+One MAC is two FLOPs. And keep the two spellings straight: FLOPs is a count of operations, FLOPS is FLOPs per second.
+
+
+Next post: [pruning and sparsity](02-pruning-and-sparsity.qmd).

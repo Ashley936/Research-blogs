@@ -1,0 +1,156 @@
+---
+title: "Efficient ML, Part 2: Pruning and Sparsity"
+subtitle: "Notes from MIT 6.5940"
+author: "Namita"
+date: 2026-07-27
+categories: [efficient-ml, tinyml, pruning, sparsity]
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    html-math-method: katex
+---
+
+Three techniques dominate model compression: pruning, distillation, and quantization. This post covers the first.
+
+The loop is simple: (one pass is never enough)
+
+```
+train  ->  prune  ->  fine-tune
+              ^__________|
+```
+
+## What pruning is, formally
+
+$$\arg\min_{W_p} \; L_0(x; W_p) \quad \text{subject to} \quad \|W_p\|_0 \le N$$
+
+The loss $L$ is whatever you trained with, cross-entropy or MSE. The $L_0$ norm counts non-zero elements in a tensor, so $N$ is the surviving parameters.
+
+::: {.callout-note}
+## Read more
+The $L_0$, $L_1$, and $L_2$ norms all show up in this context: $L_0$ as the sparsity constraint, $L_1$ as the importance criterion in network slimming, $L_2$ as the magnitude criterion.
+:::
+
+## Granularity, and the trap in it
+
+Pruning granularity runs along a spectrum, from picking off individual weights to deleting whole channels:
+
+| Granularity | What gets removed | Accelerable? |
+|---|---|---|
+| Fine-grained / unstructured | Individual weights, anywhere | Hard, the pattern is irregular |
+| Pattern-based (N:M) | Fixed count per block, indices stored | Yes, with hardware support |
+| Vector level | Contiguous runs within a row | Partially |
+| Kernel level | Whole $k_h \times k_w$ kernels | Better |
+| Channel level | Whole input or output channels | Yes, it stays a dense tensor |
+
+::: {.callout-important}
+## Fewer parameters does not mean more speed
+Unstructured pruning can throw away 90% of your weights and leave inference exactly as slow as before, because the surviving weights sit in irregular positions and your GEMM kernel cannot exploit that. Channel pruning removes less but the result is a smaller dense tensor, which every piece of hardware already knows how to multiply quickly.
+:::
+
+**N:M sparsity** is the compromise. In each contiguous block of $M$ elements, $N$ of them are pruned. The common case is 2:4, giving 50% sparsity, which is what Nvidia's sparse tensor cores support.
+
+For channel pruning you can either shrink every layer uniformly or assign each layer its own sparsity ratio. The second is better. Finding those ratios is the hard part.
+
+## Which weights to remove
+
+**Element-wise.** Importance is $|W|$. Small weights go.
+
+**Row-wise.** Importance is $\sum_i |w_i|$ (an $L_1$ norm) or the row-wise $L_2$ norm $\sqrt{\sum_i |w_i|^2}$.
+
+**Scaling-factor based (network slimming).** Attach a trainable scaling factor to each filter, meaning each output channel. Add an $L_1$ penalty on those factors during training, then prune the channels whose factor stayed small. The neat trick here is that you do not need a new parameter: reuse the scaling factor that batch norm already gives you.
+
+**Percentage of zeros (APoZ).** For channels sitting behind a ReLU, measure how often the output is zero. A channel that is almost always zero is not contributing.
+
+**Regression based.** Instead of measuring the error in the objective function, minimize the error in each layer's output after pruning:
+
+$$L = \arg\min \|Z - Z'\|^2$$
+
+You keep a coefficient vector $\beta$ over channels, where $\beta_i = 0$ means channel $i$ is pruned. Solve it by alternating: fix $W$ and solve for $\beta$, then fix $\beta$ and solve for $W$ to minimize reconstruction error. This layer-wise reconstruction idea is exactly what modern LLM compression methods use.
+
+## Choosing the ratio per layer
+
+**Sensitivity analysis.** Prune one layer at a time, sweep the ratio, plot accuracy against ratio. Pick a $\Delta$Acc threshold and read off the ratio each layer can tolerate.
+
+::: {.callout-caution}
+## Where sensitivity analysis breaks
+Each curve is measured with every other layer left intact, so **interactions between layers are invisible**. 
+
+Worse, the plot has **no notion of layer size**. A layer you can prune 80% of might hold 2% of the parameters, in which case pruning it aggressively buys you almost nothing.
+:::
+
+Two automated alternatives:
+
+- **AMC**, AutoML for Model Compression, which searches the per-layer ratios with reinforcement learning.
+- **NetAdapt**, which is iterative rather than learned.
+
+Both beat uniform pruning on the accuracy-versus-latency curve, and both are worth reading in full.
+
+::: {.callout-tip collapse="true"}
+## Why does channel pruning give superlinear FLOP reduction?
+Because pruning a conv layer reduces both its input channels and the previous layer's output channels. The MAC count is proportional to $C_i \cdot C_o$, so a reduction on both sides multiplies. Cut both by a factor $r$ and FLOPs fall by $r^2$. This is why channel pruning ratios that sound modest produce speedups that sound implausible.
+:::
+
+## Fine-tuning after pruning
+
+Add regularization to the loss term, and drop the learning rate to a tenth or a hundredth of the original to recover the accuracy lost.
+
+## Making sparsity pay off in hardware
+
+Software alone will not cash in unstructured sparsity. **EIE**, the Efficient Inference Engine, is the classic accelerator design that does, and it exploits three separate facts:
+
+| Exploit | Reasoning | Gain claimed |
+|---|---|---|
+| Sparse weights | $0 \times A = 0$, skip the MAC | 10x less computation, 5x less memory |
+| Sparse activations | $W \times 0 = 0$, skip the MAC | 3x less computation |
+| Weight sharing | Store a 4-bit index, not a 32-bit float | 8x less memory |
+
+The memory saving from sparse weights is smaller than the compute saving because you now have to store indices alongside values.
+
+**Storage format.** Weights go in compressed sparse column form, which is three arrays: the non-zero values, a relative index (how many zeros preceded each value in its column), and a column pointer marking where each column's run begins. The pointer array is built by running addition: each entry is the previous pointer plus the count of non-zeros in that column.
+
+Worked on the matrix from the lecture, taking the two rows assigned to PE0:
+
+$$\text{row}_0 = [2, -1, 0, 0], \qquad \text{row}_4 = [0, 3, -2, 0]$$
+
+| | col 0 | col 1 | col 2 | col 3 |
+|---|---|---|---|---|
+| Values | 2 | −1, 3 | −2 | (none) |
+| Relative index | 0 | 0, 0 | 1 | |
+| Column pointer | 0 | 1 | 3 | 4, then 4 |
+
+**Parallelization.** Rows of $W$ are dealt out to processing elements round-robin, so PE0 gets rows 0 and 4, PE1 gets rows 1 and 5, and so on. Everything lives in SRAM; EIE never goes to DRAM.
+
+The pipeline inside a PE:
+
+```
+Leading Non-Zero Detection (LNZD)
+  -> broadcast to the activation queue of each PE, via the Central Control Unit
+  -> Pointer Read Unit
+  -> Sparse Matrix Read Unit
+  -> Weight Decode
+  -> Arithmetic Unit (performs the MAC)
+  -> Activation Read/Write Unit
+  -> ReLU, then LNZD again for the next layer
+```
+
+The activation queue is doing real work here: it smooths load imbalance between processing elements, since different rows have different numbers of non-zeros.
+
+## Sparsity in modern workloads
+
+Sparsity is not only a weight phenomenon. Different domains hand you different kinds for free:
+
+- Transformers: token sparsity
+- Video: temporal sparsity, because most objects did not move between frames
+- Point clouds: spatial sparsity, most of the volume is empty
+- Generative vision models: spatial sparsity
+
+Nvidia's hardware path for M:N sparsity converts the pruned weight matrix into a non-zero value matrix plus an index matrix. At runtime a multiplexer uses those indices to select the matching activations, and the dense non-zero matrix is multiplied against them.
+
+## A closing warning about sparse convolution
+
+The naive approach on point clouds is to compute the convolution at position $(i, j)$ only when `input[i][j]` is non-zero. That works, but it destroys **regularity**: different weights end up interacting with different input patterns, and memory access becomes unpredictable.
+
+**TorchSparse** takes the opposite tack. It adds padding back into the features so the computation regains a regular shape, accepting some wasted work in exchange for access patterns the hardware can actually stream. That trade, a little redundant computation for a lot of regularity, shows up over and over once you start looking for it.
+
+Next in this series: [quantization](03-quantization.qmd).
